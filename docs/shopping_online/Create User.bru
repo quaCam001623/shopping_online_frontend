@@ -1,0 +1,24 @@
+meta {
+  name: Create User
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:9999/users
+  body: none
+  auth: bearer
+}
+
+headers {
+  ~Content-Type: application/json
+}
+
+tests {
+  {
+    "name": "Anna",
+    "age": 18,
+    "address": "Hanoi"
+  }
+  
+}

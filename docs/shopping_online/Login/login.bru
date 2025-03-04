@@ -1,0 +1,28 @@
+meta {
+  name: login
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:9999/login
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+  ~value: bruno
+  ~: 
+}
+
+auth:bearer {
+  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2N2JkNzU1ODJlYWM1M2Q1N2JmZWRlYmIiLCJpYXQiOjE3NDA2NzYzNzMsImV4cCI6MTc0MDc2Mjc3M30.8duEwQ-5Lw5yPDOW8ZE8Oqw0-FMFz6OJl_qRrcn08Ls
+}
+
+body:json {
+  {
+    "email":"john.doe@example.com",
+    "password":"123"
+  }
+}
