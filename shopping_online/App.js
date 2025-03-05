@@ -9,6 +9,7 @@ import Login from "./src/components/login/Login";
 import { AuthProvider } from "./src/common/context/AuthContext";
 import Register from "./src/components/login/Register";
 import screens from "./src/routes/RootNavigation";
+import Toast from "react-native-toast-message";
 
 const Stack = createNativeStackNavigator();
 
@@ -32,6 +33,7 @@ export default function App() {
     <AuthProvider>
       <NavigationContainer>
         <RootStack />
+        <Toast />
       </NavigationContainer>
     </AuthProvider>
   );

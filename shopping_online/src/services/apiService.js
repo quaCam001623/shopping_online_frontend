@@ -19,10 +19,10 @@ api.interceptors.request.use(
 );
 
 const apiService = {
-  post: async (endpoint, params) => {
+  post: async (endpoint, data) => {
     try {
-      const response = await api.post(endpoint, params);
-      return response.data;
+      const response = await api.post(endpoint, data);
+      return response;
     } catch (error) {
       console.log(error);
     }
@@ -30,7 +30,27 @@ const apiService = {
   get: async (endpoint) => {
     try {
       const response = await api.get(endpoint);
+      return response.data.data;
+    } catch (error) {
+      console.log(error);
+    }
+  },
+  put: async (endpoint, data) => {
+    try {
+      const response = await api.put(endpoint, data);
       return response.data;
+    } catch (error) {
+      console.log(error);
+    }
+  },
+  delete: async (endpoint) => {
+    try {
+      const response = await api.delete(endpoint);
+      if (response.ok) {
+        return true;
+      } else {
+        return false;
+      }
     } catch (error) {
       console.log(error);
     }

@@ -1,16 +1,18 @@
 import React from "react";
+import { useNavigation } from "@react-navigation/native";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Feather from "@expo/vector-icons/Feather";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const HeaderNav = ({ screen }) => {
+  const navigation = useNavigation(); // Lấy navigation từ context
   return (
     <SafeAreaView>
       <View style={styles.header}>
         {/* Nút quay lại */}
         <TouchableOpacity
-          // onPress={() => navigation.goBack()}
+          onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
           <AntDesign name="arrowleft" size={24} color="black" />

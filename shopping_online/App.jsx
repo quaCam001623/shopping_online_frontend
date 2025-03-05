@@ -24,6 +24,8 @@ import Profile from "./src/components/design/Profile";
 import AccountSetting from "./src/components/design/Setting/AccountSetting";
 import ContactUs from "./src/components/design/Setting/ContactUs";
 import OrderHistory from "./src/components/design/Setting/OrderHistory";
+import Toast from "react-native-toast-message";
+import { AuthProvider } from "./src/common/context/AuthContext";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -42,25 +44,28 @@ const App = () => {
     return null;
   }
   return (
-    <SafeAreaProvider>
-      {/* <HomeScreen /> */}
-      <Details />
-      {/* <HeaderNav screen="Home" /> */}
-      {/* <CheckList /> */}
-      {/* <PayOrder /> */}
-      {/* <Completed /> */}
-      {/* <OrderDetail /> */}
-      {/* <Categories /> */}
-      {/* <WishList /> */}
+    <AuthProvider>
+      <SafeAreaProvider>
+        {/* <Toast /> */}
+        {/* <HomeScreen /> */}
+        {/* <Details /> */}
+        {/* <HeaderNav screen="Home" /> */}
+        {/* <CheckList /> */}
+        {/* <PayOrder /> */}
+        {/* <Completed /> */}
+        {/* <OrderDetail /> */}
+        {/* <Categories /> */}
+        {/* <WishList /> */}
 
-      {/* <LoginScreen /> */}
-      {/* <Login /> */}
-      {/* <Register /> */}
-      {/* <Profile /> */}
-      {/* <AccountSetting /> */}
-      {/* <ContactUs /> */}
-      {/* <OrderHistory /> */}
-    </SafeAreaProvider>
+        {/* <LoginScreen /> */}
+        <Login />
+        {/* <Register /> */}
+        {/* <Profile /> */}
+        {/* <AccountSetting /> */}
+        {/* <ContactUs /> */}
+        {/* <OrderHistory /> */}
+      </SafeAreaProvider>
+    </AuthProvider>
   );
 };
 

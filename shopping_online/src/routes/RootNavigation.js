@@ -1,3 +1,4 @@
+import CheckList from "../components/design/CheckList";
 import Details from "../components/design/Details";
 import ThumnailScreen from "../components/design/ThumnailScreen";
 import Login from "../components/login/Login";
@@ -24,6 +25,13 @@ const screens = [
   {
     name: "details",
     component: Details,
+    options: {
+      headerShown: false,
+    },
+  },
+  {
+    name: "checklist",
+    component: CheckList,
     options: { headerShown: false },
   },
 ];

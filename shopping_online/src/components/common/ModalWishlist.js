@@ -11,8 +11,6 @@ import {
 } from "react-native";
 import { globalStyles, PRIMARY_COLOR } from "../../utils/enums";
 import AntDesign from "@expo/vector-icons/AntDesign";
-import Feather from "@expo/vector-icons/Feather";
-import Ionicons from "@expo/vector-icons/Ionicons";
 
 const ModalWishlist = ({ modalVisible, setModalVisible }) => {
   const sizes = ["XS", "S", "M", "L", "XL"];

@@ -6,8 +6,6 @@ import { StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Entypo from "@expo/vector-icons/Entypo";
 import { getProducts } from "../../services/productService";
-import { TextInput } from "react-native-paper";
-import Card from "../common/Card";
 
 const HomeScreen = ({ navigation }) => {
   const [products, setProducts] = useState([]);
@@ -18,9 +16,9 @@ const HomeScreen = ({ navigation }) => {
     const fetchProducts = async () => {
       try {
         const response = await getProducts();
-        if (response && response.data) {
-          setProducts(response.data); // Lưu dữ liệu vào state
-          setFilterProducts(response.data);
+        if (response) {
+          setProducts(response); // Lưu dữ liệu vào state
+          setFilterProducts(response);
         }
       } catch (error) {
         console.error("Error fetching products:", error);
@@ -43,7 +41,7 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
-  // console.log("filter products", filterProducts);
+  console.log(" products", products);
 
   return (
     <SafeAreaView>

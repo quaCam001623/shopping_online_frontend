@@ -16,7 +16,7 @@ const Login = ({ navigation }) => {
   const { login } = useContext(AuthContext);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
+  // const [rememberMe, setRememberMe] = useState(false);
   const [secureText, setSecureText] = useState(true);
   console.log(`email:${email} - password:${password}`);
   const handleLogin = () => {
