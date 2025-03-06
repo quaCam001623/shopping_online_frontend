@@ -110,7 +110,7 @@ const Details = ({ navigation }) => {
         }
       }
     } catch (error) {
-      ShowMessage("error", "Error", error.message);
+      console.log(error.message);
     }
   };
 

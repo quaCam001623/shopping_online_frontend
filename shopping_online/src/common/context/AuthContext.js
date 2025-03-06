@@ -3,11 +3,15 @@ import React, { createContext, useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { jwtDecode } from "jwt-decode"; // Import thư viện decode JWT
 import { loginApi } from "../../services/loginService";
+import { getAddressByUser } from "../../services/shippingAddressService";
+import { getCards } from "../../services/cardService";
 
 const AuthContext = createContext();
 const AuthProvider = ({ children }) => {
   const [token, setToken] = useState();
   const [userId, setUserId] = useState();
+  const [address, setAddress] = useState([]);
+  const [cards, setCards] = useState([]);
 
   // When app is starting, check the token in AsyncStorage
   useEffect(() => {
@@ -26,6 +30,25 @@ const AuthProvider = ({ children }) => {
 
     loadUser();
   }, []);
+
+  useEffect(() => {
+    const fetch = async (userId) => {
+      try {
+        if (userId) {
+          const responseAddress = await getAddressByUser(userId);
+          if (responseAddress) {
+            setAddress(responseAddress);
+          }
+
+          const responseCard = await getCards(userId);
+          if (responseCard) setCards(responseCard);
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    };
+    fetch(userId);
+  }, [userId]);
 
   const login = async (email, password) => {
     try {
@@ -62,7 +85,19 @@ const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ token, login, logout, userId, setUserId }}>
+    <AuthContext.Provider
+      value={{
+        token,
+        login,
+        logout,
+        userId,
+        setUserId,
+        address,
+        setAddress,
+        cards,
+        setCards,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -1,5 +1,8 @@
 import CheckList from "../components/design/CheckList";
+import Completed from "../components/design/Completed";
 import Details from "../components/design/Details";
+import OrderDetailsScreen from "../components/design/OrderDetail";
+import PayOrder from "../components/design/PayOrder";
 import ThumnailScreen from "../components/design/ThumnailScreen";
 import Login from "../components/login/Login";
 import Register from "../components/login/Register";
@@ -33,6 +36,21 @@ const screens = [
     name: "checklist",
     component: CheckList,
     options: { headerShown: false },
+  },
+  {
+    name: "payorder",
+    component: PayOrder,
+    options: { headerShown: false },
+  },
+  {
+    name: "complete",
+    component: Completed,
+    options: { headerShown: false },
+  },
+  {
+    name: "orderdetail",
+    component: OrderDetailsScreen,
+    options: { headerShown: true, title: "Order Detail" },
   },
 ];
 

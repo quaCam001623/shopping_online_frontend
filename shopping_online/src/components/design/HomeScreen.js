@@ -46,7 +46,7 @@ const HomeScreen = ({ navigation }) => {
   return (
     <SafeAreaView>
       <View style={styles.container}>
-        <Header />
+        <Header navigation={navigation} />
 
         <Text style={styles.text}>Find the best fit for all your needs</Text>
         <SearchBar

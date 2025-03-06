@@ -53,12 +53,12 @@ const App = () => {
         {/* <CheckList /> */}
         {/* <PayOrder /> */}
         {/* <Completed /> */}
-        {/* <OrderDetail /> */}
+        <OrderDetail />
         {/* <Categories /> */}
         {/* <WishList /> */}
 
         {/* <LoginScreen /> */}
-        <Login />
+        {/* <Login /> */}
         {/* <Register /> */}
         {/* <Profile /> */}
         {/* <AccountSetting /> */}

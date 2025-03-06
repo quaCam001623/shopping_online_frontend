@@ -1,123 +1,201 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  Image,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-} from "react-native";
-import { AntDesign, Feather } from "@expo/vector-icons";
-import { Checkbox, RadioButton } from "react-native-paper";
-import HeaderNav from "../common/HeaderNav";
+import React, { useState, useEffect } from "react";
+import { View, Text, Image, StyleSheet, ScrollView } from "react-native";
+import { Feather } from "@expo/vector-icons";
+import { RadioButton } from "react-native-paper";
 import { globalStyles, PRIMARY_COLOR } from "../../utils/enums";
-import { product } from "../../utils/data";
 import Bottom from "../common/Bottom";
+import { getOrderById } from "../../services/orderService";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-const OrderDetailsScreen = () => {
-  const payMethods = [
-    { id: "cash", name: "Cash" },
-    { id: "vnpay", name: "VnPay" },
-  ];
-  const [selectPayment, setSelectPayment] = useState("vnpay");
+const OrderDetailsScreen = ({ navigation }) => {
+  const orderId = "67c9da359b31486270d156fb";
+  const [order, setOrder] = useState(null);
+  const [orderDetail, setOrderDetail] = useState([]);
+
+  useEffect(() => {
+    const fetchOrder = async (orderId) => {
+      try {
+        const response = await getOrderById(orderId);
+        if (response && response.order && response.orderDetail) {
+          setOrder(response.order);
+          setOrderDetail(response.orderDetail);
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    };
+    fetchOrder(orderId);
+  }, [orderId]);
+
+  // console.log("orderDetail", orderDetail);
+  // console.log("order", order);
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <HeaderNav screen="Order Details" />
+    <SafeAreaView style={{ flex: 1 }}>
+      <ScrollView style={styles.container}>
+        {/* Header */}
+        {/* <HeaderNav screen="Order Details" /> */}
+        {order && (
+          <View>
+            {/* Address Section */}
+            <View style={styles.addressContainer}>
+              <Feather name="map-pin" size={20} color="black" />
+              <View style={styles.addressTextContainer}>
+                <Text style={styles.addressText}>
+                  {order?.shipAdressId?.address} {order?.shipAdressId?.city}{" "}
+                  {order?.shipAdressId?.country}
+                </Text>
 
-      <ScrollView>
-        {/* Address Section */}
-        <View style={styles.addressContainer}>
-          <Feather name="map-pin" size={20} color="black" />
-          <View style={styles.addressTextContainer}>
-            <Text style={styles.addressText}>
-              456 Creative Lane San Francisco, CA 94102, United States
-            </Text>
-            <Text style={styles.addressSubText}>
-              Sanzu Sa | +1 675 555 1234
-            </Text>
-          </View>
-          <AntDesign name="right" size={20} color="black" />
-        </View>
-
-        {/* Order Status */}
-        <Text style={{ color: PRIMARY_COLOR, marginLeft: 270 }}>
-          Pending Payment
-        </Text>
-
-        {/* Product List */}
-        <View>
-          {product.slice(0, 2).map((item) => (
-            <View style={styles.productItem} key={item.id}>
-              <Image source={item.img} style={styles.productImage} />
-              <View style={styles.productDetails}>
-                <Text style={styles.productName}>{item.name}</Text>
-                <Text style={styles.productMeta}>Quantity: 1, Size: S</Text>
+                <Text style={styles.addressSubText}>
+                  {order?.shipAdressId?.fullName} |{" "}
+                  {order?.shipAdressId?.phoneNumber}
+                </Text>
               </View>
-              <Text style={styles.productPrice}>Rs. {item.price}</Text>
+              {/* <AntDesign name="right" size={20} color="black" /> */}
             </View>
-          ))}
-          <View style={[globalStyles.crossLine]}> </View>
-        </View>
 
-        {/* Price Details */}
-        <View style={styles.priceDetails}>
-          <Text style={styles.priceTitle}>Price Details</Text>
-          <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>Original Price</Text>
-            <Text style={styles.priceValue}>Rs. 1000</Text>
-          </View>
-          <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>Use Coupon</Text>
-            <Text style={styles.discount}>- $0.20</Text>
-          </View>
-          <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>Shipping Cost</Text>
-            <Text style={styles.priceValue}>$0.04</Text>
-          </View>
-          <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>Order ID</Text>
-            <Text style={styles.priceValue}>
-              35325565555788 <Text style={styles.copyText}>| Copy</Text>
+            {/* Order Status */}
+            <Text style={{ color: PRIMARY_COLOR, marginLeft: 270 }}>
+              Status: {order?.paymentId?.status}
             </Text>
-          </View>
-          <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>Created Time</Text>
-            <Text style={styles.priceValue}>2024-03-04 11:40:52</Text>
-          </View>
-        </View>
-        <View style={globalStyles.crossLine}></View>
 
-        {/* Payment Method */}
-        <Text style={{ marginVertical: 20, fontWeight: "bold" }}>
-          Pay Method
-        </Text>
-        <View style={{ flexDirection: "row", gap: 10 }}>
-          <View style={[styles.paymethod, styles.selectPayment]}>
-            <Feather name="dollar-sign" size={24} color="black" />
-            <Text>Cash</Text>
-            <RadioButton styles={{ marginLeft: 20 }} />
-          </View>
-          <View style={styles.paymethod}>
-            <Feather name="smartphone" size={24} color="black" />
-            <Text>VnPay</Text>
-            <RadioButton
-              styles={{ marginLeft: 20, backgroundColor: PRIMARY_COLOR }}
-            />
-          </View>
-        </View>
+            {/* Product List */}
+            <ScrollView>
+              {orderDetail &&
+                orderDetail.map((item) => (
+                  <View style={styles.productItem} key={item._id}>
+                    <Image
+                      style={styles.productImage}
+                      source={
+                        item?.productDetailId?.productId?.images
+                          ? {
+                              uri: item.productDetailId.productId.images[0],
+                            }
+                          : require("../../../assets/icon.png")
+                      }
+                    />
 
-        {/* Total */}
-        <View style={styles.totalContainer}>
-          <Text style={styles.totalLabel}>Total:</Text>
-          <Text style={styles.totalAmount}>$90.00</Text>
-        </View>
+                    <View style={styles.productDetails}>
+                      <Text style={styles.productName}>{item.name}</Text>
+                      <Text style={styles.productMeta}>
+                        Quantity: {item?.quantity}, Size:{" "}
+                        {item?.productDetailId?.size}
+                      </Text>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          gap: 10,
+                          marginVertical: 10,
+                        }}
+                      >
+                        <Text>Color: </Text>
+                        <View
+                          style={[
+                            styles.sizeContainer,
+                            {
+                              backgroundColor: item?.productDetailId?.color,
+                            },
+                          ]}
+                        ></View>
+                      </View>
+                    </View>
+                    <Text style={styles.productPrice}>Rs. {item.price}</Text>
+                  </View>
+                ))}
+              <View style={[globalStyles.crossLine]}> </View>
+            </ScrollView>
+
+            {/* Price Details */}
+            <View style={styles.priceDetails}>
+              <Text style={styles.priceTitle}>Price Details</Text>
+              <View style={styles.priceRow}>
+                <Text style={styles.priceLabel}>Original Price</Text>
+                <Text style={styles.priceValue}>
+                  Rs. {(order?.totalAmount - 15000).toLocaleString("vi-Vn")}
+                </Text>
+              </View>
+              <View style={styles.priceRow}>
+                <Text style={styles.priceLabel}>Use Coupon</Text>
+                <Text style={styles.discount}>
+                  {orderDetail?.discountId == null
+                    ? "--"
+                    : orderDetail?.discountId?.discountValue}
+                </Text>
+              </View>
+              <View style={styles.priceRow}>
+                <Text style={styles.priceLabel}>Shipping Cost</Text>
+                <Text style={styles.priceValue}>15.000</Text>
+              </View>
+              <View style={styles.priceRow}>
+                <Text style={styles.priceLabel}>Order ID</Text>
+                <Text style={styles.priceValue}>{order._id}</Text>
+              </View>
+              <View style={styles.priceRow}>
+                <Text style={styles.priceLabel}>Created Time</Text>
+                <Text style={styles.priceValue}>{order.created_at}</Text>
+              </View>
+            </View>
+            <View style={globalStyles.crossLine}></View>
+
+            {/* Payment Method */}
+            <Text style={{ marginVertical: 20, fontWeight: "bold" }}>
+              Pay Method
+            </Text>
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              {/* cash */}
+              <View
+                style={[
+                  styles.paymethod,
+                  order.paymentId.paymentMethod == "cash" &&
+                    styles.selectPayment,
+                ]}
+              >
+                <Feather name="dollar-sign" size={24} color="black" />
+                <Text>Cash</Text>
+                <RadioButton
+                  value="cash"
+                  status={
+                    order.paymentId.paymentMethod == "cash"
+                      ? "checked"
+                      : "unchecked"
+                  }
+                />
+              </View>
+
+              {/* VnPay */}
+              <View
+                style={[
+                  styles.paymethod,
+                  order.paymentId.paymentMethod == "vnpay" &&
+                    styles.selectPayment,
+                ]}
+              >
+                <Feather name="smartphone" size={24} color="black" />
+                <Text>VnPay</Text>
+                <RadioButton
+                  value="vnpay"
+                  status={
+                    order.paymentId.paymentMethod == "vnpay"
+                      ? "checked"
+                      : "unchecked"
+                  }
+                />
+              </View>
+            </View>
+
+            {/* Total */}
+            <View style={styles.totalContainer}>
+              <Text style={styles.totalLabel}>Total:</Text>
+              <Text style={styles.totalAmount}>
+                {order?.totalAmount.toLocaleString("vi-VN")} VNĐ
+              </Text>
+            </View>
+          </View>
+        )}
       </ScrollView>
-
       {/* Bottom */}
       <Bottom />
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -156,6 +234,7 @@ const styles = StyleSheet.create({
   addressSubText: {
     fontSize: 12,
     color: "gray",
+    marginVertical: 5,
   },
 
   productItem: {
@@ -263,6 +342,13 @@ const styles = StyleSheet.create({
   },
   paymethodSelected: {
     borderColor: PRIMARY_COLOR,
+  },
+  sizeContainer: {
+    width: 31,
+    height: 30,
+    borderRadius: 16,
+    backgroundColor: "#24232B",
+    position: "relative",
   },
 });
 

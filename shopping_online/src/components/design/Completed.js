@@ -1,24 +1,21 @@
 import React from "react";
-import { View, Text, SafeAreaView } from "react-native";
+import {
+  View,
+  Text,
+  SafeAreaView,
+  TouchableOpacity,
+  StyleSheet,
+} from "react-native";
 import Feather from "@expo/vector-icons/Feather";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import { PRIMARY_COLOR } from "../../utils/enums";
-import HeaderNav from "../common/HeaderNav";
 import ButtonText from "../common/ButtonText";
 import ButtonTextWhite from "../common/ButtonTextWhite";
 
-const Completed = () => {
+const Completed = ({ navigation }) => {
   return (
     <SafeAreaView>
-      <HeaderNav />
-
-      <View
-        styles={{
-          flex: 1,
-          alignItems: "center",
-          alignSelf: "center",
-        }}
-      >
+      <View styles={styles.container}>
         <Feather
           name="shopping-bag"
           size={137}
@@ -52,11 +49,23 @@ const Completed = () => {
         Payment Done {"\n"} Successfully and your{"\n"} order has been placed.
       </Text>
       <View style={{ marginTop: 150 }}>
-        <ButtonTextWhite text="View Order Details" />
-        <ButtonText text="Continue Shopping" />
+        <TouchableOpacity onPress={() => navigation.navigate("orderdetail")}>
+          <ButtonTextWhite text="View Order Details" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate("Main")}>
+          <ButtonText text="Continue Shopping" />
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 };
 
 export default Completed;
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: "center",
+    alignSelf: "center",
+  },
+});

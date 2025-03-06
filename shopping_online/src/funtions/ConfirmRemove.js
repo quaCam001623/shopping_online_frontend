@@ -6,7 +6,6 @@ import { deleteCard } from "../services/cardService";
 import ShowMessage from "./Message";
 
 const ConfirmRemove = ({ actionSheetRef, item, setCards }) => {
-  console.log("item remove", item);
   const deleteC = async (cardId) => {
     try {
       await deleteCard(cardId);
@@ -64,7 +63,7 @@ const ConfirmRemove = ({ actionSheetRef, item, setCards }) => {
               </View>
 
               {/* quantity */}
-              <View style={styles.operationContainer}>
+              {/* <View style={styles.operationContainer}>
                 <TouchableOpacity
                   style={[
                     styles.operation,
@@ -86,6 +85,17 @@ const ConfirmRemove = ({ actionSheetRef, item, setCards }) => {
                 >
                   <Text style={styles.operationMinus}>-</Text>
                 </TouchableOpacity>
+              </View> */}
+              <View
+                style={{ flexDirection: "row", gap: 10, marginVertical: 10 }}
+              >
+                <Text>Color: </Text>
+                <View
+                  style={[
+                    styles.sizeContainer,
+                    { backgroundColor: item?.productDetailId?.color },
+                  ]}
+                ></View>
               </View>
             </View>
           </View>
@@ -180,5 +190,12 @@ const styles = StyleSheet.create({
     fontWeight: "400",
     fontSize: 14,
     color: "gray",
+  },
+  sizeContainer: {
+    width: 31,
+    height: 30,
+    borderRadius: 16,
+    backgroundColor: "#24232B",
+    position: "relative",
   },
 });

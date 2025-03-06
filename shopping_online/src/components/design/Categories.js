@@ -18,7 +18,7 @@ import { PRIMARY_COLOR } from "../../utils/enums";
 import { getProducts } from "../../services/productService";
 import { getCategories } from "../../services/categoryService";
 
-const Categories = () => {
+const Categories = ({ navigation }) => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -41,12 +41,12 @@ const Categories = () => {
       try {
         const response = await getProducts();
         const dataCategory = await getCategories();
-        if (response && response.data) {
-          setProducts(response.data); // Lưu dữ liệu vào state
-          setFilterProducts(response.data);
+        if (response) {
+          setProducts(response); // Lưu dữ liệu vào state
+          setFilterProducts(response);
         }
-        if (dataCategory && dataCategory.data) {
-          setCategories(dataCategory.data);
+        if (dataCategory) {
+          setCategories(dataCategory);
         }
       } catch (error) {
         console.error("Error fetching products:", error);
@@ -176,7 +176,13 @@ const Categories = () => {
             <ScrollView contentContainerStyle={styles.productsContainer}>
               {products != null ? (
                 filterProducts?.map((item) => (
-                  <View style={styles.item} key={item._id}>
+                  <TouchableOpacity
+                    style={styles.item}
+                    key={item._id}
+                    onPress={() =>
+                      navigation.navigate(`details`, { id: item._id })
+                    }
+                  >
                     <Image
                       style={styles.image}
                       source={
@@ -195,7 +201,7 @@ const Categories = () => {
                       color="black"
                       style={{ position: "absolute", top: 35, right: 34 }}
                     />
-                  </View>
+                  </TouchableOpacity>
                 ))
               ) : (
                 <View>

@@ -16,15 +16,17 @@ import { CheckBox } from "react-native-elements";
 import { getCards, updateCard } from "../../services/cardService";
 import ConfirmRemove from "../../funtions/ConfirmRemove";
 import { AuthContext } from "../../common/context/AuthContext";
+import ShowMessage from "../../funtions/Message";
 
-const CheckList = () => {
+const CheckList = ({ navigation }) => {
   const route = useRoute();
-  const { cardId } = route.params; // Nhận id từ params
+  const { cardId = null } = route.params || {}; // Safe destructuring
   const { userId } = useContext(AuthContext);
-  const [isSelected, setSelection] = useState([cardId]);
+  const [isSelected, setSelection] = useState(cardId ? [cardId] : []);
   const [cards, setCards] = useState([]);
   const actionSheetRef = useRef(null);
   const [selectedItemToRemove, setSelectedItemToRemove] = useState(null);
+  const [selectedProduct, setSelectedProdcut] = useState([]);
 
   // console.log("cardId", cardId);
 
@@ -54,6 +56,18 @@ const CheckList = () => {
     }
   }, [userId]);
 
+  useEffect(() => {
+    const selectedCards = cards
+      .filter((card) => isSelected.includes(card._id))
+      .map((card) => ({
+        productDetailId: card.productDetailId._id,
+        discountId: null,
+        quantity: card.quantity,
+        price: card.productDetailId.productId.price,
+      }));
+    setSelectedProdcut(selectedCards);
+  }, [isSelected]);
+
   const handleChecbox = (item) => {
     setSelection((prev) =>
       prev.includes(item._id)
@@ -61,6 +75,8 @@ const CheckList = () => {
         : [...prev, item._id]
     );
   };
+
+  console.log("selection product", isSelected);
 
   const updateC = async (cardId, data) => {
     try {
@@ -88,6 +104,18 @@ const CheckList = () => {
       (sum, item) => sum + item.productDetailId.productId.price * item.quantity,
       0
     );
+
+  const handlePayOrder = () => {
+    if (totalAmount < 1) {
+      ShowMessage("error", "Error", "You have to choose at least a product");
+      return;
+    }
+    navigation.navigate("payorder", {
+      totalAmount: totalAmount + 15000,
+      selectedProduct,
+      isSelected,
+    });
+  };
 
   return (
     <View style={styles.container}>
@@ -175,26 +203,12 @@ const CheckList = () => {
                   actionSheetRef={actionSheetRef}
                   item={selectedItemToRemove ? selectedItemToRemove : item}
                   setCards={setCards}
+                  handleQuantity={handleQuantity}
                 />
               </View>
             ))}
         </ScrollView>
       </View>
-
-      {/* Action Sheet */}
-
-      {/* <ActionSheet ref={actionSheetRef}>
-        <View style={{ padding: 20 }}>
-          <Button
-            title="Cancel"
-            onPress={() => actionSheetRef.current?.hide()}
-          />
-          <Button
-            title="Remove"
-            onPress={() => console.log("Remove product from cart")}
-          />
-        </View>
-      </ActionSheet> */}
 
       {/* total money */}
       <View>
@@ -217,8 +231,9 @@ const CheckList = () => {
               : ""}
           </Text>
         </View>
-
-        <ButtonText text="Proceed to Checkout" />
+        <TouchableOpacity onPress={() => handlePayOrder()}>
+          <ButtonText text="Proceed to Checkout" />
+        </TouchableOpacity>
       </View>
     </View>
   );
