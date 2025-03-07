@@ -11,8 +11,13 @@ import AntDesign from "@expo/vector-icons/AntDesign";
 import { PRIMARY_COLOR } from "../../utils/enums";
 import ButtonText from "../common/ButtonText";
 import ButtonTextWhite from "../common/ButtonTextWhite";
+import { useRoute } from "@react-navigation/native";
 
 const Completed = ({ navigation }) => {
+  const route = useRoute();
+  const { orderId } = route.params;
+  console.log("route.params", route.params);
+  console.log("route.params.orderId", route.params?.orderId);
   return (
     <SafeAreaView>
       <View styles={styles.container}>
@@ -49,7 +54,9 @@ const Completed = ({ navigation }) => {
         Payment Done {"\n"} Successfully and your{"\n"} order has been placed.
       </Text>
       <View style={{ marginTop: 150 }}>
-        <TouchableOpacity onPress={() => navigation.navigate("orderdetail")}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate("orderdetail", { orderId })}
+        >
           <ButtonTextWhite text="View Order Details" />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => navigation.navigate("Main")}>

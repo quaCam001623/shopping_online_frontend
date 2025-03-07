@@ -35,12 +35,12 @@ const screens = [
   {
     name: "checklist",
     component: CheckList,
-    options: { headerShown: false },
+    options: { headerShown: true, title: "Shopping Bag" },
   },
   {
     name: "payorder",
     component: PayOrder,
-    options: { headerShown: false },
+    options: { headerShown: true, title: "Checkout" },
   },
   {
     name: "complete",
@@ -50,7 +50,7 @@ const screens = [
   {
     name: "orderdetail",
     component: OrderDetailsScreen,
-    options: { headerShown: true, title: "Order Detail" },
+    options: { headerShown: true, title: "Order Details" },
   },
 ];
 

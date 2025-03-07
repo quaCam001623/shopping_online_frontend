@@ -84,11 +84,15 @@ const PayOrder = ({ navigation }) => {
         orderItems: selectedProduct,
       };
       const response = await createOrder(orderData);
-      if (response.status == 200) {
+      console.log("repsonse", response);
+      if (response) {
         if (isSelected.length > 0) {
           await Promise.all(isSelected.map((item) => deleteC(item)));
         }
-        navigation.navigate("complete");
+        if (response && response.data.data) {
+          const newOrderId = response.data.data.order._id;
+          navigation.navigate("complete", { orderId: newOrderId });
+        }
       } else {
         ShowMessage("error", "Error", "Fail to order");
       }
@@ -100,7 +104,7 @@ const PayOrder = ({ navigation }) => {
   return (
     <SafeAreaView style={{ backgroundColor: "white" }}>
       <View style={styles.container}>
-        <HeaderNav screen="Checkout" navigation={navigation} />
+        {/* <HeaderNav screen="Checkout" navigation={navigation} /> */}
         <Text style={styles.paymentText}>Payment method</Text>
 
         <View style={{ gap: 5 }}>

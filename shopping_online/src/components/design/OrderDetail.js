@@ -3,12 +3,16 @@ import { View, Text, Image, StyleSheet, ScrollView } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { RadioButton } from "react-native-paper";
 import { globalStyles, PRIMARY_COLOR } from "../../utils/enums";
-import Bottom from "../common/Bottom";
 import { getOrderById } from "../../services/orderService";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRoute } from "@react-navigation/native";
 
-const OrderDetailsScreen = ({ navigation }) => {
-  const orderId = "67c9da359b31486270d156fb";
+const OrderDetailsScreen = () => {
+  // const orderId = "67c9da359b31486270d156fb";
+  const route = useRoute();
+  const { orderId } = route.params;
+  console.log("orderId", orderId);
+
   const [order, setOrder] = useState(null);
   const [orderDetail, setOrderDetail] = useState([]);
 
@@ -24,14 +28,18 @@ const OrderDetailsScreen = ({ navigation }) => {
         console.log(error);
       }
     };
-    fetchOrder(orderId);
+    if (orderId) {
+      fetchOrder(orderId);
+    }
   }, [orderId]);
 
   // console.log("orderDetail", orderDetail);
   // console.log("order", order);
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: "white", paddingTop: -10 }}
+    >
       <ScrollView style={styles.container}>
         {/* Header */}
         {/* <HeaderNav screen="Order Details" /> */}
@@ -193,8 +201,6 @@ const OrderDetailsScreen = ({ navigation }) => {
           </View>
         )}
       </ScrollView>
-      {/* Bottom */}
-      <Bottom />
     </SafeAreaView>
   );
 };

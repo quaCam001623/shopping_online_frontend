@@ -119,7 +119,7 @@ const CheckList = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <HeaderNav screen="Shopping Bag" navigation={navigation} />
+      {/* <HeaderNav screen="Shopping Bag" navigation={navigation} /> */}
       <View style={{ height: 500, flexDirection: "column-reverse" }}>
         <ScrollView>
           {cards &&
