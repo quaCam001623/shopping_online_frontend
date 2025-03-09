@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, Image, StyleSheet, ScrollView } from "react-native";
-import { Feather } from "@expo/vector-icons";
+import { Feather, FontAwesome5 } from "@expo/vector-icons";
 import { RadioButton } from "react-native-paper";
 import { globalStyles, PRIMARY_COLOR } from "../../utils/enums";
 import { getOrderById } from "../../services/orderService";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRoute } from "@react-navigation/native";
+import { payMethods } from "../../utils/data";
 
 const OrderDetailsScreen = () => {
   // const orderId = "67c9da359b31486270d156fb";
@@ -15,6 +16,7 @@ const OrderDetailsScreen = () => {
 
   const [order, setOrder] = useState(null);
   const [orderDetail, setOrderDetail] = useState([]);
+  const [selectPayment, setSelectPayment] = useState("");
 
   useEffect(() => {
     const fetchOrder = async (orderId) => {
@@ -23,6 +25,10 @@ const OrderDetailsScreen = () => {
         if (response && response.order && response.orderDetail) {
           setOrder(response.order);
           setOrderDetail(response.orderDetail);
+          const choosePayment = payMethods.find(
+            (item) => item.id == response.order.paymentId.paymentMethod
+          );
+          setSelectPayment(choosePayment);
         }
       } catch (error) {
         console.log(error);
@@ -146,61 +152,52 @@ const OrderDetailsScreen = () => {
             <View style={globalStyles.crossLine}></View>
 
             {/* Payment Method */}
-            <Text style={{ marginVertical: 20, fontWeight: "bold" }}>
-              Pay Method
-            </Text>
-            <View style={{ flexDirection: "row", gap: 10 }}>
-              {/* cash */}
-              <View
-                style={[
-                  styles.paymethod,
-                  order.paymentId.paymentMethod == "cash" &&
-                    styles.selectPayment,
-                ]}
-              >
-                <Feather name="dollar-sign" size={24} color="black" />
-                <Text>Cash</Text>
-                <RadioButton
-                  value="cash"
-                  status={
-                    order.paymentId.paymentMethod == "cash"
-                      ? "checked"
-                      : "unchecked"
-                  }
-                />
-              </View>
-
-              {/* VnPay */}
-              <View
-                style={[
-                  styles.paymethod,
-                  order.paymentId.paymentMethod == "vnpay" &&
-                    styles.selectPayment,
-                ]}
-              >
-                <Feather name="smartphone" size={24} color="black" />
-                <Text>VnPay</Text>
-                <RadioButton
-                  value="vnpay"
-                  status={
-                    order.paymentId.paymentMethod == "vnpay"
-                      ? "checked"
-                      : "unchecked"
-                  }
-                />
-              </View>
-            </View>
-
-            {/* Total */}
-            <View style={styles.totalContainer}>
-              <Text style={styles.totalLabel}>Total:</Text>
-              <Text style={styles.totalAmount}>
-                {order?.totalAmount.toLocaleString("vi-VN")} VNĐ
-              </Text>
+            <Text style={styles.paymentText}>Pay Method</Text>
+            <View>
+              {selectPayment ? (
+                <View key={selectPayment.id} style={styles.paymentOption}>
+                  <FontAwesome5
+                    name={selectPayment.icon}
+                    size={20}
+                    color="black"
+                  />
+                  <View
+                    style={{
+                      flex: 1,
+                      paddingVertical: 5,
+                      paddingHorizontal: 10,
+                    }}
+                  >
+                    <Text style={styles.paymentTitle}>
+                      {selectPayment.name}
+                    </Text>
+                    <Text style={styles.paymentDescription}>
+                      {selectPayment.description}
+                    </Text>
+                  </View>
+                  <RadioButton
+                    value={selectPayment.id}
+                    status={
+                      order.paymentId.paymentMethod === selectPayment.id
+                        ? "checked"
+                        : "unchecked"
+                    }
+                  />
+                </View>
+              ) : (
+                <Text>Payment method not found</Text>
+              )}
             </View>
           </View>
         )}
       </ScrollView>
+      {/* Total */}
+      <View style={styles.totalContainer}>
+        <Text style={styles.totalLabel}>Total:</Text>
+        <Text style={styles.totalAmount}>
+          {order?.totalAmount.toLocaleString("vi-VN")} VNĐ
+        </Text>
+      </View>
     </SafeAreaView>
   );
 };
@@ -320,9 +317,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 12,
+    paddingVertical: 15,
     gap: 20,
-    marginVertical: 20,
+    // marginVertical: 20,
   },
   totalLabel: {
     fontSize: 18,
@@ -355,6 +352,30 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: "#24232B",
     position: "relative",
+  },
+
+  // Payment Options
+  // payment method
+  paymentOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ddd",
+  },
+  paymentTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  paymentDescription: {
+    fontSize: 14,
+    color: "gray",
+  },
+  paymentText: {
+    fontWeight: "bold",
+    fontSize: 18,
+    marginTop: 30,
+    marginBottom: 5,
   },
 });
 

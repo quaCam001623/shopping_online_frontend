@@ -318,6 +318,8 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
+    // borderColor: "#e8e8e8",
+    // borderWidth: 1,
   },
   disabledColor: {
     opacity: 0.3, // Làm mờ màu không có hàng

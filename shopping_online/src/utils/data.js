@@ -42,3 +42,30 @@ export const product = [
     price: 20000,
   },
 ];
+
+export const payMethods = [
+  {
+    id: "qr",
+    name: "Thanh toán bằng mã QR",
+    description: "Thanh toán bằng mã QR qua VNPay",
+    icon: "qrcode",
+  },
+  {
+    id: "vnpay",
+    name: "Thanh toán trực tuyến",
+    description: "Thanh toán trực tuyến qua VNPay",
+    icon: "credit-card",
+  },
+  {
+    id: "cash",
+    name: "Tiền mặt",
+    description: "Thanh toán bằng tiền mặt khi lên xe",
+    icon: "money-bill-wave",
+  },
+  {
+    id: "transfer",
+    name: "Chuyển khoản",
+    description: "Thanh toán bằng chuyển khoản ngân hàng",
+    icon: "university",
+  },
+];

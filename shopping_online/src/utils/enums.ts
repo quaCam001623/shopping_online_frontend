@@ -13,6 +13,6 @@ export const globalStyles = StyleSheet.create({
     borderBottomColor: "#e8e8e8",
     width: 321,
     alignSelf: "center",
-    marginVertical: 30,
+    marginVertical: 10,
   },
 });

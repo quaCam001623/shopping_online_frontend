@@ -18,6 +18,11 @@ import { useRoute } from "@react-navigation/native";
 import ShowMessage from "../../funtions/Message";
 import { createOrder } from "../../services/orderService";
 import { deleteCard } from "../../services/cardService";
+import AddAddressModal from "../common/ModalAddress";
+import { Modal } from "react-native";
+import { FontAwesome5 } from "@expo/vector-icons";
+import ListAddressModal from "../common/ListAddressModal";
+import { payMethods } from "../../utils/data";
 
 const PayOrder = ({ navigation }) => {
   const [address, setAddress] = useState([]);
@@ -26,6 +31,9 @@ const PayOrder = ({ navigation }) => {
   const { totalAmount, selectedProduct, isSelected } = route.params;
   const [paymentMethod, setPaymentMethod] = useState("");
   const [selectedAddress, setSelectedAddress] = useState("");
+  const [isVisible, setModalVisible] = useState(false);
+  const [modalAddress, setModalAddress] = useState(false);
+  const [chooseAddress, setChooseAddress] = useState("");
 
   const today = new Date(); // Lấy ngày hiện tại
   const formattedDate = today.toLocaleDateString("en-GB", {
@@ -33,29 +41,23 @@ const PayOrder = ({ navigation }) => {
     month: "long",
     year: "numeric",
   });
-
-  useEffect(() => {
-    const fetch = async (userId) => {
-      try {
-        if (userId) {
-          const responseAddress = await getAddressByUser(userId);
-          if (responseAddress) {
-            setAddress(responseAddress);
-          }
+  const fetchAddress = async () => {
+    try {
+      if (userId) {
+        const responseAddress = await getAddressByUser(userId);
+        if (responseAddress) {
+          setAddress(responseAddress);
         }
-      } catch (error) {
-        console.log(error);
       }
-    };
-    fetch(userId);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  useEffect(() => {
+    if (userId) {
+      fetchAddress();
+    }
   }, [userId]);
-
-  // console.log("address", address);
-
-  const payMethods = [
-    { id: "cash", name: "Cash" },
-    { id: "VnPay", name: "VnPay" },
-  ];
 
   const deleteC = async (cardId) => {
     try {
@@ -97,92 +99,113 @@ const PayOrder = ({ navigation }) => {
         ShowMessage("error", "Error", "Fail to order");
       }
     } catch (error) {
-      console.log(error.message);
+      console.log("Error", error.message);
+    }
+  };
+
+  const handleAddNewAddress = () => {
+    setModalVisible(true);
+  };
+
+  const handleChooseAddress = (item) => {
+    setSelectedAddress(item._id);
+    setModalAddress(false);
+  };
+
+  const handleChoosePaymentMethod = (item) => {
+    if (!chooseAddress) {
+      ShowMessage(
+        "error",
+        "Warinng",
+        "Please choose address before select payment method!!!"
+      );
+    } else {
+      setPaymentMethod(item.id);
     }
   };
 
   return (
-    <SafeAreaView style={{ backgroundColor: "white" }}>
+    <SafeAreaView style={{ backgroundColor: "white", flex: 1 }}>
       <View style={styles.container}>
-        {/* <HeaderNav screen="Checkout" navigation={navigation} /> */}
-        <Text style={styles.paymentText}>Payment method</Text>
-
-        <View style={{ gap: 5 }}>
-          {payMethods.map((item) => (
+        {/* Address */}
+        <View
+          style={{
+            marginTop: 30,
+            borderBottomColor: "#e8e8e8",
+            borderBottomWidth: 1,
+            height: 180,
+          }}
+        >
+          <View style={{ flexDirection: "row", gap: 20, alignItems: "center" }}>
+            <Text style={styles.deliverAddressText}> Delivery Address</Text>
             <TouchableOpacity
-              key={item.id}
-              style={{ flexDirection: "row", gap: 6, alignItems: "center" }}
-              onPress={() => setPaymentMethod(item.id)}
+              style={styles.selectAddressButton}
+              onPress={() => setModalAddress(true)}
             >
-              <RadioButton
-                value={item.id}
-                status={paymentMethod == item.id ? "checked" : "unchecked"}
-              />
-              <Text style={{ fontSize: 17 }}>{item.name}</Text>
+              <Text style={{ color: PRIMARY_COLOR, fontSize: 16 }}>
+                Chọn địa chỉ
+              </Text>
             </TouchableOpacity>
-          ))}
-        </View>
-
-        <View style={styles.crossLine}></View>
-
-        <Text style={styles.deliverAddressText}> Delivery Address</Text>
-        <View>
-          <View style={{ height: 300 }}>
-            <ScrollView>
-              {address &&
-                address.map((item) => (
-                  <TouchableOpacity
-                    key={item._id}
-                    style={[
-                      styles.addressBox,
-                      selectedAddress === item._id && styles.selectedAddress,
-                    ]}
-                    onPress={() => setSelectedAddress(item._id)} // Thêm sự kiện cập nhật state
-                  >
-                    <RadioButton
-                      value={item._id}
-                      status={
-                        selectedAddress == item._id ? "checked" : "unchecked"
-                      }
-                      onPress={() => setSelectedAddress(item._id)} // Đảm bảo RadioButton cũng có sự kiện onPress
-                    />
-                    <View style={{ width: 158 }}>
-                      <Text
-                        style={
-                          selectedAddress === item._id && styles.selectedText
-                        }
-                      >
-                        {item.fullName}
-                      </Text>
-                      <Text
-                        style={
-                          selectedAddress === item._id && styles.selectedText
-                        }
-                      >
-                        {item.address}, {item.city}, {item.country}
-                      </Text>
-                      <Text
-                        style={
-                          selectedAddress === item._id && styles.selectedText
-                        }
-                      >
-                        {item.phoneNumber}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-            </ScrollView>
           </View>
+          {chooseAddress ? (
+            <View style={styles.selectedAddressBox}>
+              <Text>{chooseAddress.fullName}</Text>
+              <Text>
+                {chooseAddress.address}, {chooseAddress.city},{" "}
+                {chooseAddress.country}
+              </Text>
+              <Text>{chooseAddress.phoneNumber}</Text>
+            </View>
+          ) : (
+            <Text style={{ fontSize: 16, color: "gray", marginVertical: 10 }}>
+              Chưa chọn địa chỉ
+            </Text>
+          )}
 
           {/* Add a new Address */}
-          <View style={styles.addAddressText}>
+          <TouchableOpacity
+            style={styles.addAddressText}
+            onPress={() => handleAddNewAddress()}
+          >
             <Text style={{ color: PRIMARY_COLOR, fontSize: 16 }}>
               + Add a new Address
             </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Line */}
+        {/* <View style={styles.crossLine}></View> */}
+
+        <View>
+          <Text style={styles.paymentText}>Payment method</Text>
+
+          {/* Payment Method */}
+          <View>
+            {payMethods.map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={styles.paymentOption}
+                onPress={() => handleChoosePaymentMethod(item)}
+              >
+                <FontAwesome5 name={item.icon} size={20} color="black" />
+                <View
+                  style={{ flex: 1, paddingVertical: 5, paddingHorizontal: 10 }}
+                >
+                  <Text style={styles.paymentTitle}>{item.name}</Text>
+                  <Text style={styles.paymentDescription}>
+                    {item.description}
+                  </Text>
+                </View>
+                <RadioButton
+                  value={item.id}
+                  status={paymentMethod === item.id ? "checked" : "unchecked"}
+                />
+              </TouchableOpacity>
+            ))}
           </View>
 
           {/* Delivery */}
-          <View style={styles.flexBox}>
+          <View style={[styles.flexBox, { marginTop: 20 }]}>
             <FontAwesome6 name="truck-fast" size={24} color={PRIMARY_COLOR} />
             <Text>
               Estimated delivery:{" "}
@@ -193,17 +216,30 @@ const PayOrder = ({ navigation }) => {
           {/* Total */}
           <View style={styles.flexBox}>
             <Text>Amount Payable</Text>
-            <Text
-              style={{
-                fontWeight: "bold",
-                fontSize: 30,
-                color: PRIMARY_COLOR,
-                fontFamily: "quicksand",
-              }}
-            >
+            <Text style={styles.totalAmount}>
               {totalAmount.toLocaleString("vi-Vn")} VNĐ
             </Text>
           </View>
+
+          {isVisible && (
+            <AddAddressModal
+              isVisible={isVisible}
+              setModalVisible={setModalVisible}
+              onAddNewAddress={fetchAddress}
+            />
+          )}
+
+          {/* Modal chọn địa chỉ */}
+          {modalAddress && (
+            <ListAddressModal
+              address={address}
+              modalAddress={modalAddress}
+              setModalAddress={setModalAddress}
+              chooseAddress={chooseAddress}
+              setChooseAddress={setChooseAddress}
+              handleChooseAddress={handleChooseAddress}
+            />
+          )}
 
           {/* Button */}
           <TouchableOpacity onPress={() => handleCompleteOrder()}>
@@ -243,7 +279,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 18,
     marginTop: 30,
-    marginBottom: 15,
+    marginBottom: 5,
   },
   crossLine: {
     borderWidth: 0.5,
@@ -263,12 +299,76 @@ const styles = StyleSheet.create({
     height: 20,
     borderBottomColor: PRIMARY_COLOR,
     borderBottomWidth: 0.5,
-    marginBottom: 20,
+    marginVertical: 10,
   },
   flexBox: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginVertical: 8,
+  },
+  deliverAddressText: {
+    fontWeight: "bold",
+    fontSize: 18,
+    marginBottom: 10,
+  },
+  selectAddressButton: {
+    // backgroundColor: PRIMARY_COLOR,
+    padding: 7,
+    borderRadius: 10,
+    alignItems: "center",
+    borderColor: PRIMARY_COLOR,
+    borderWidth: 1,
+    width: 150,
+    height: 40,
+  },
+  selectedAddressBox: {
+    backgroundColor: "#E8E8E8",
+    padding: 15,
+    borderRadius: 10,
+    marginTop: 10,
+  },
+  modalContainer: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: "white",
+  },
+
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  addressBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ccc",
+  },
+
+  // payment method
+  paymentOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ddd",
+  },
+  paymentTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  paymentDescription: {
+    fontSize: 14,
+    color: "gray",
+  },
+
+  totalAmount: {
+    fontWeight: "bold",
+    fontSize: 30,
+    color: PRIMARY_COLOR,
+    fontFamily: "quicksand",
   },
 });

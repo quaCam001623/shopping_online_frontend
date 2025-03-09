@@ -24,7 +24,7 @@ const apiService = {
       const response = await api.post(endpoint, data);
       return response;
     } catch (error) {
-      console.log(error);
+      console.log("post error", error);
     }
   },
   get: async (endpoint) => {
