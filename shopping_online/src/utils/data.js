@@ -45,13 +45,13 @@ export const product = [
 
 export const payMethods = [
   {
-    id: "qr",
+    id: "vnpay_qr",
     name: "Thanh toán bằng mã QR",
     description: "Thanh toán bằng mã QR qua VNPay",
     icon: "qrcode",
   },
   {
-    id: "vnpay",
+    id: "vnpay_online",
     name: "Thanh toán trực tuyến",
     description: "Thanh toán trực tuyến qua VNPay",
     icon: "credit-card",
@@ -63,7 +63,7 @@ export const payMethods = [
     icon: "money-bill-wave",
   },
   {
-    id: "transfer",
+    id: "vnpay_bank",
     name: "Chuyển khoản",
     description: "Thanh toán bằng chuyển khoản ngân hàng",
     icon: "university",

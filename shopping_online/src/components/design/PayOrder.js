@@ -112,15 +112,46 @@ const PayOrder = ({ navigation }) => {
     setModalAddress(false);
   };
 
+  // const handleChoosePaymentMethod = (item) => {
+  //   if (!chooseAddress) {
+  //     ShowMessage(
+  //       "error",
+  //       "Warinng",
+  //       "Please choose address before select payment method!!!"
+  //     );
+  //   } else {
+  //     setPaymentMethod(item.id);
+  //   }
+  // };
+
   const handleChoosePaymentMethod = (item) => {
     if (!chooseAddress) {
       ShowMessage(
         "error",
-        "Warinng",
-        "Please choose address before select payment method!!!"
+        "Warning",
+        "Please choose address before selecting a payment method!!!"
       );
-    } else {
-      setPaymentMethod(item.id);
+      return;
+    }
+
+    setPaymentMethod(item.id);
+
+    // Điều hướng theo từng phương thức thanh toán
+    switch (item.id) {
+      case "vnpay_qr":
+        navigation.navigate("VNPayQR", { amount: totalAmount });
+        break;
+      case "vnpay_online":
+        navigation.navigate("VNPayOnline", { amount: totalAmount });
+        break;
+      case "vnpay_bank":
+        navigation.navigate("VNPayBank", { amount: totalAmount });
+        break;
+      case "cash":
+        handleCompleteOrder();
+        break;
+      default:
+        break;
     }
   };
 
@@ -186,6 +217,7 @@ const PayOrder = ({ navigation }) => {
                 key={item.id}
                 style={styles.paymentOption}
                 onPress={() => handleChoosePaymentMethod(item)}
+                // onPress={() => setPaymentMethod(item.id)}
               >
                 <FontAwesome5 name={item.icon} size={20} color="black" />
                 <View
@@ -242,9 +274,9 @@ const PayOrder = ({ navigation }) => {
           )}
 
           {/* Button */}
-          <TouchableOpacity onPress={() => handleCompleteOrder()}>
+          {/* <TouchableOpacity onPress={() => handleChoosePaymentMethod()}>
             <ButtonText text="Pay and Complete Order" />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       </View>
     </SafeAreaView>

@@ -2,7 +2,13 @@ import CheckList from "../components/design/CheckList";
 import Completed from "../components/design/Completed";
 import Details from "../components/design/Details";
 import OrderDetailsScreen from "../components/design/OrderDetail";
+import VNPayBank from "../components/design/payment/VnpayBank";
+import VNPayOnline from "../components/design/payment/VnpayOnline";
+import VNPayQR from "../components/design/payment/VnpayQR";
 import PayOrder from "../components/design/PayOrder";
+import AccountSetting from "../components/design/Setting/AccountSetting";
+import ContactUs from "../components/design/Setting/ContactUs";
+import OrderHistory from "../components/design/Setting/OrderHistory";
 import ThumnailScreen from "../components/design/ThumnailScreen";
 import Login from "../components/login/Login";
 import Register from "../components/login/Register";
@@ -51,6 +57,36 @@ const screens = [
     name: "orderdetail",
     component: OrderDetailsScreen,
     options: { headerShown: true, title: "Order Details" },
+  },
+  {
+    name: "VNPayQR",
+    component: VNPayQR,
+    options: { headerShown: false },
+  },
+  {
+    name: "VNPayBank",
+    component: VNPayBank,
+    options: { headerShown: false },
+  },
+  {
+    name: "VNPayOnline",
+    component: VNPayOnline,
+    options: { headerShown: false },
+  },
+  {
+    name: "accountSetting",
+    component: AccountSetting,
+    options: { headerShown: false },
+  },
+  {
+    name: "contactUs",
+    component: ContactUs,
+    options: { headerShown: false },
+  },
+  {
+    name: "orderHistory",
+    component: OrderHistory,
+    options: { headerShown: false },
   },
 ];
 

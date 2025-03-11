@@ -17,7 +17,10 @@ const Profile = ({ navigation }) => {
         {/* setting item */}
         <View>
           {/* Account setting */}
-          <View style={styles.box}>
+          <TouchableOpacity
+            style={styles.box}
+            onPress={() => navigation.navigate("accountSetting")}
+          >
             <View style={{ flexDirection: "row", gap: 20 }}>
               <AntDesign
                 name="user"
@@ -27,13 +30,14 @@ const Profile = ({ navigation }) => {
               />
               <Text style={styles.textLeft}>Account Setting</Text>
             </View>
-            <TouchableOpacity>
-              <AntDesign name="right" size={18} color="#777290" />
-            </TouchableOpacity>
-          </View>
+            <AntDesign name="right" size={18} color="#777290" />
+          </TouchableOpacity>
 
           {/* Order History */}
-          <View style={styles.box}>
+          <TouchableOpacity
+            style={styles.box}
+            onPress={() => navigation.navigate("orderHistory")}
+          >
             <View style={{ flexDirection: "row", gap: 20 }}>
               <Octicons
                 name="history"
@@ -43,13 +47,14 @@ const Profile = ({ navigation }) => {
               />
               <Text style={styles.textLeft}>Order History</Text>
             </View>
-            <TouchableOpacity>
-              <AntDesign name="right" size={18} color="#777290" />
-            </TouchableOpacity>
-          </View>
+            <AntDesign name="right" size={18} color="#777290" />
+          </TouchableOpacity>
 
           {/* Contact Us */}
-          <View style={styles.box}>
+          <TouchableOpacity
+            style={styles.box}
+            onPress={() => navigation.navigate("contactUs")}
+          >
             <View style={{ flexDirection: "row", gap: 20 }}>
               <SimpleLineIcons
                 name="envelope-letter"
@@ -59,10 +64,8 @@ const Profile = ({ navigation }) => {
               />
               <Text style={styles.textLeft}>Contact Us</Text>
             </View>
-            <TouchableOpacity>
-              <AntDesign name="right" size={18} color="#777290" />
-            </TouchableOpacity>
-          </View>
+            <AntDesign name="right" size={18} color="#777290" />
+          </TouchableOpacity>
         </View>
       </View>
     </SafeAreaView>

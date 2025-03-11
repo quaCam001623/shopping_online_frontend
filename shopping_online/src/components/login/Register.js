@@ -22,7 +22,7 @@ const Register = ({ navigation }) => {
 
   const handleRegister = async () => {
     const user = { firstName, lastName, email, phoneNumber: phone, password };
-    console.log("register user", user);
+
     const response = await createUsers(user);
     if (response) navigation.navigate("login");
   };

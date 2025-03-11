@@ -5,11 +5,13 @@ import { jwtDecode } from "jwt-decode"; // Import thư viện decode JWT
 import { loginApi } from "../../services/loginService";
 import { getAddressByUser } from "../../services/shippingAddressService";
 import { getCards } from "../../services/cardService";
+import { getUserById } from "../../services/userService";
 
 const AuthContext = createContext();
 const AuthProvider = ({ children }) => {
   const [token, setToken] = useState();
   const [userId, setUserId] = useState();
+  const [user, setUser] = useState();
   const [address, setAddress] = useState([]);
   const [cards, setCards] = useState([]);
 
@@ -39,6 +41,9 @@ const AuthProvider = ({ children }) => {
           if (responseAddress) {
             setAddress(responseAddress);
           }
+
+          const responseUser = await getUserById(userId);
+          if (responseUser) setUser(responseUser);
 
           const responseCard = await getCards(userId);
           if (responseCard) setCards(responseCard);
@@ -96,6 +101,8 @@ const AuthProvider = ({ children }) => {
         setAddress,
         cards,
         setCards,
+        user,
+        setUser,
       }}
     >
       {children}

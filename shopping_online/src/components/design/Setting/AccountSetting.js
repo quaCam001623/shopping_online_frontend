@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import {
   View,
   Text,
@@ -14,14 +14,19 @@ import AntDesign from "@expo/vector-icons/AntDesign";
 import { PRIMARY_COLOR } from "../../../utils/enums";
 import Footer from "../../common/Footer";
 import Feather from "@expo/vector-icons/Feather";
+import RNPickerSelect from "react-native-picker-select";
+import { AuthContext } from "../../../common/context/AuthContext";
+import ShowMessage from "../../../funtions/Message";
+import { getUserById, updateUser } from "../../../services/userService";
 
-const AccountSetting = () => {
-  const [firstName, setFirstName] = useState("Alex");
-  const [lastName, setLastName] = useState("Mecheal");
-  const [location, setLocation] = useState("Sylhet, Bangladesh");
-  const [dateOfBirth, setDateOfBirth] = useState("07.12.1997");
-  const [email, setEmail] = useState("uihutofficial@gmail.com");
-  const [gender, setGender] = useState("Male");
+const AccountSetting = ({ navigation }) => {
+  const { user, userId } = useContext(AuthContext);
+  const [firstName, setFirstName] = useState(user.firstName || "");
+  const [lastName, setLastName] = useState(user.lastName || "");
+  const [dateOfBirth, setDateOfBirth] = useState(user?.dob?.slice(0, 10) || "");
+  const [phoneNumber, setPhoneNumber] = useState(user.phoneNumber || "");
+  const [email, setEmail] = useState(user.email || "");
+  const [gender, setGender] = useState(user.gender || "");
   const [profileImage, setProfileImage] = useState(null);
   //   PASSWORD
   const [currentPassword, setCurrentPassword] = useState("");
@@ -30,6 +35,8 @@ const AccountSetting = () => {
   const [secureCurrent, setSecureCurrent] = useState(true);
   const [secureNew, setSecureNew] = useState(true);
   const [secureConfirm, setSecureConfirm] = useState(true);
+
+  // console.log("user", user);
 
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -48,198 +55,297 @@ const AccountSetting = () => {
     setProfileImage(null);
   };
 
-  const saveChanges = () => {
-    // Implement your save logic here (e.g., API call)
-    console.log("Profile saved:", {
+  const saveChanges = async () => {
+    if (
+      !firstName ||
+      !lastName ||
+      !email ||
+      !phoneNumber ||
+      !dob || // Đảm bảo dùng giá trị mới
+      !gender
+    ) {
+      ShowMessage("error", "Error", "Please input all the fields");
+      return;
+    }
+    const regex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!regex.test(dateOfBirth)) {
+      ShowMessage(
+        "error",
+        "Error",
+        "You have to enter date with the format YYYY-MM-DD"
+      );
+      return;
+    }
+
+    const dob = new Date(dateOfBirth); // Chuyển đổi đúng format
+    // Dùng biến tạm thay vì setState (vì setState không cập nhật ngay)
+    const userData = {
       firstName,
       lastName,
-      location,
-      dateOfBirth,
       email,
+      phoneNumber,
+      dob, // Đảm bảo dùng giá trị mới
       gender,
-      profileImage,
-    });
+    };
+
+    const response = await updateUser(userId, userData);
+    if (response) {
+      await getUserById(userId);
+      ShowMessage(
+        "success",
+        "Success",
+        "Update your personal information successfully"
+      );
+    }
   };
+
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      ShowMessage("error", "Error", "Please fill in all fields");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      ShowMessage("error", "Error", "New passwords do not match");
+      return;
+    }
+
+    try {
+      const response = await updateUser(userId, {
+        currentPassword,
+        newPassword,
+      });
+      if (response) {
+        ShowMessage("success", "Success", "Password updated successfully");
+      } else {
+        ShowMessage("error", "Error", data.message);
+      }
+    } catch (error) {
+      ShowMessage("error", "Error", "Something went wrong");
+    }
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
-      <Header />
-      <ScrollView>
-        <Text style={styles.title}>Account Setting</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "white" }}>
+      <View style={styles.container}>
+        <Header />
+        <ScrollView>
+          {/* <Text style={styles.title}>Account Setting</Text> */}
 
-        {/* Account setting */}
-        <View style={styles.box}>
-          <View style={{ flexDirection: "row", gap: 20 }}>
-            <AntDesign
-              name="user"
-              size={18}
-              color="#777290"
-              style={styles.iconLeft}
-            />
-            <Text style={styles.textLeft}>Account Setting</Text>
-          </View>
-          <TouchableOpacity>
-            <AntDesign name="right" size={18} color="#777290" />
-          </TouchableOpacity>
-        </View>
-
-        {/* my profile */}
-        <View style={styles.profileContainer}>
-          <View style={styles.profileBox}>
-            <View style={styles.profileHeader}>
-              <Text style={styles.profileTitle}>My profile</Text>
-            </View>
-
-            <View style={styles.imageBox}>
-              <Image
-                source={require("../../../../assets/avatar.jpg")}
-                style={styles.image}
+          {/* Account setting */}
+          <View style={styles.box}>
+            <TouchableOpacity
+              style={{ flexDirection: "row", gap: 20 }}
+              onPress={() => navigation.goBack()}
+            >
+              <AntDesign
+                name="left"
+                size={18}
+                color="#777290"
+                style={{ marginRight: 10 }}
               />
-              <View>
-                <View style={styles.boxRight}>
-                  <Text style={styles.uploadImage}>Upload new photo</Text>
-                  <Text style={styles.removeImage}>Remove</Text>
-                </View>
 
-                <Text style={{ fontSize: 11, color: "#b1b5c3" }}>
-                  Image formats with max size of 3mb
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>First Name</Text>
-              <TextInput
-                style={styles.input}
-                value={firstName}
-                onChangeText={setFirstName}
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Last name</Text>
-              <TextInput
-                style={styles.input}
-                value={lastName}
-                onChangeText={setLastName}
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Location</Text>
-              <TextInput
-                style={styles.input}
-                value={location}
-                onChangeText={setLocation}
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Date Of Birth</Text>
-              <TextInput
-                style={styles.input}
-                value={dateOfBirth}
-                onChangeText={setDateOfBirth}
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Email address</Text>
-              <TextInput
-                style={styles.input}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Gender</Text>
-              <TextInput
-                style={styles.input}
-                value={gender}
-                onChangeText={setGender}
-              />
-            </View>
-
-            <TouchableOpacity style={styles.saveButton} onPress={saveChanges}>
-              <Text style={styles.saveButtonText}>Save Change</Text>
+              <Text style={styles.textLeft}>Account Setting</Text>
             </TouchableOpacity>
           </View>
-        </View>
 
-        {/* Password */}
-        <View style={styles.passwordBox}>
-          <View style={styles.passwordContainer}>
-            <Text style={styles.titlePassword}>Change Password</Text>
-
-            {/* Current Password */}
-            <Text style={styles.labelPassword}>Current password</Text>
-            <View style={styles.inputPasswordContainer}>
-              <TextInput
-                style={styles.inputPassword}
-                value={currentPassword}
-                onChangeText={setCurrentPassword}
-                secureTextEntry={secureCurrent}
-              />
-              <TouchableOpacity
-                onPress={() => setSecureCurrent(!secureCurrent)}
-              >
-                <Feather
-                  name={secureCurrent ? "eye-off" : "eye"}
-                  size={20}
-                  color="#777490"
-                />
-              </TouchableOpacity>
-            </View>
-
-            {/* New Password */}
-            <View>
-              <Text style={styles.labelPassword}>New password</Text>
-              <View style={styles.inputPasswordContainer}>
-                <TextInput
-                  style={styles.inputPassword}
-                  value={newPassword}
-                  onChangeText={setNewPassword}
-                  secureTextEntry={secureNew}
-                />
-                <TouchableOpacity onPress={() => setSecureNew(!secureNew)}>
-                  <Feather
-                    name={secureNew ? "eye-off" : "eye"}
-                    size={20}
-                    color="#777490"
-                  />
-                </TouchableOpacity>
+          {/* my profile */}
+          <View style={styles.profileContainer}>
+            <View style={styles.profileBox}>
+              <View style={styles.profileHeader}>
+                <Text style={styles.profileTitle}>My profile</Text>
               </View>
 
-              {/* Confirm Password */}
-              <Text style={styles.labelPassword}>Confirm password</Text>
-              <View style={styles.inputPasswordContainer}>
-                <TextInput
-                  style={styles.inputPassword}
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  secureTextEntry={secureConfirm}
+              <View style={styles.imageBox}>
+                <Image
+                  source={require("../../../../assets/avatar.jpg")}
+                  style={styles.image}
                 />
-                <TouchableOpacity
-                  onPress={() => setSecureConfirm(!secureConfirm)}
+                <View>
+                  <View style={styles.boxRight}>
+                    <Text style={styles.uploadImage}>Upload new photo</Text>
+                    <Text style={styles.removeImage}>Remove</Text>
+                  </View>
+
+                  <Text style={{ fontSize: 11, color: "#b1b5c3" }}>
+                    Image formats with max size of 3mb
+                  </Text>
+                </View>
+              </View>
+
+              {/* FirstName */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>First Name</Text>
+                <TextInput
+                  style={styles.input}
+                  value={firstName}
+                  onChangeText={setFirstName}
+                />
+              </View>
+
+              {/* LastName */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Last name</Text>
+                <TextInput
+                  style={styles.input}
+                  value={lastName}
+                  onChangeText={setLastName}
+                />
+              </View>
+
+              {/* <View style={styles.inputContainer}>
+                <Text style={styles.label}>Location</Text>
+                <TextInput
+                  style={styles.input}
+                  value={location}
+                  onChangeText={setLocation}
+                />
+              </View> */}
+
+              {/* PHoneNumber */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Phone number</Text>
+                <TextInput
+                  style={styles.input}
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
+                />
+              </View>
+
+              {/* Date */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Date Of Birth</Text>
+                <TextInput
+                  style={styles.input}
+                  value={dateOfBirth}
+                  onChangeText={setDateOfBirth}
+                  placeholder="YYYY-MM-DD"
+                />
+              </View>
+
+              {/* Email */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Email address</Text>
+                <TextInput
+                  style={styles.input}
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                />
+              </View>
+
+              {/* Gender */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Gender</Text>
+                <View
+                  style={{
+                    borderWidth: 1,
+                    borderColor: "#e8e8e8",
+                    borderRadius: 5,
+                    color: "#777490",
+                  }}
                 >
-                  <Feather
-                    name={secureConfirm ? "eye-off" : "eye"}
-                    size={20}
-                    color="#777490"
+                  <RNPickerSelect
+                    onValueChange={(value) => setGender(value)}
+                    items={[
+                      { label: "Male", value: "male" },
+                      { label: "Female", value: "female" },
+                      { label: "Other", value: "other" },
+                    ]}
+                    placeholder={{ label: "Select gender", value: null }}
+                    value={gender}
                   />
-                </TouchableOpacity>
+                </View>
+                {/* <TextInput
+                  style={styles.input}
+                  value={gender}
+                  onChangeText={setGender}
+                /> */}
               </View>
 
-              <TouchableOpacity style={styles.saveButton}>
+              <TouchableOpacity style={styles.saveButton} onPress={saveChanges}>
                 <Text style={styles.saveButtonText}>Save Change</Text>
               </TouchableOpacity>
             </View>
           </View>
-        </View>
-        {/* Footer */}
-        <Footer />
-      </ScrollView>
+
+          {/* Password */}
+          <View style={styles.passwordBox}>
+            <View style={styles.passwordContainer}>
+              <Text style={styles.titlePassword}>Change Password</Text>
+
+              {/* Current Password */}
+              <Text style={styles.labelPassword}>Current password</Text>
+              <View style={styles.inputPasswordContainer}>
+                <TextInput
+                  style={styles.inputPassword}
+                  value={currentPassword}
+                  onChangeText={setCurrentPassword}
+                  secureTextEntry={secureCurrent}
+                />
+                <TouchableOpacity
+                  onPress={() => setSecureCurrent(!secureCurrent)}
+                >
+                  <Feather
+                    name={secureCurrent ? "eye-off" : "eye"}
+                    size={20}
+                    color="#777490"
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* New Password */}
+              <View>
+                <Text style={styles.labelPassword}>New password</Text>
+                <View style={styles.inputPasswordContainer}>
+                  <TextInput
+                    style={styles.inputPassword}
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    secureTextEntry={secureNew}
+                  />
+                  <TouchableOpacity onPress={() => setSecureNew(!secureNew)}>
+                    <Feather
+                      name={secureNew ? "eye-off" : "eye"}
+                      size={20}
+                      color="#777490"
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Confirm Password */}
+                <Text style={styles.labelPassword}>Confirm password</Text>
+                <View style={styles.inputPasswordContainer}>
+                  <TextInput
+                    style={styles.inputPassword}
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry={secureConfirm}
+                  />
+                  <TouchableOpacity
+                    onPress={() => setSecureConfirm(!secureConfirm)}
+                  >
+                    <Feather
+                      name={secureConfirm ? "eye-off" : "eye"}
+                      size={20}
+                      color="#777490"
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.saveButton}
+                  onPress={handleChangePassword}
+                >
+                  <Text style={styles.saveButtonText}>Save Change</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+          {/* Footer */}
+          <Footer />
+        </ScrollView>
+      </View>
     </SafeAreaView>
   );
 };
@@ -248,7 +354,7 @@ export default AccountSetting;
 
 const styles = StyleSheet.create({
   container: {
-    marginHorizontal: 20,
+    paddingHorizontal: 20,
     backgroundColor: "white",
     marginBottom: 50,
   },
