@@ -1,43 +1,141 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, Image, StyleSheet, ScrollView } from "react-native";
+import React, { useState, useEffect, useContext } from "react";
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+} from "react-native";
 import { Feather, FontAwesome5 } from "@expo/vector-icons";
 import { RadioButton } from "react-native-paper";
 import { globalStyles, PRIMARY_COLOR } from "../../utils/enums";
-import { getOrderById } from "../../services/orderService";
+import {
+  getOrderById,
+  deleteOrder,
+  getOrderByUser,
+} from "../../services/orderService";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRoute } from "@react-navigation/native";
+import { useRoute, useNavigation } from "@react-navigation/native";
 import { payMethods } from "../../utils/data";
+import ShowMessage from "../../funtions/Message";
+import { AuthContext } from "../../common/context/AuthContext";
 
 const OrderDetailsScreen = () => {
   // const orderId = "67c9da359b31486270d156fb";
   const route = useRoute();
-  const { orderId } = route.params;
-  console.log("orderId", orderId);
+  const navigation = useNavigation();
+  const { orderId, isNewOrder = false } = route.params;
 
   const [order, setOrder] = useState(null);
   const [orderDetail, setOrderDetail] = useState([]);
   const [selectPayment, setSelectPayment] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { setOrders, userId } = useContext(AuthContext);
+
+  const fetchOrder = async (orderId) => {
+    try {
+      const response = await getOrderById(orderId);
+      if (response && response.order && response.orderDetail) {
+        setOrder(response.order);
+        setOrderDetail(response.orderDetail);
+        const choosePayment = payMethods.find(
+          (item) => item.id == response.order.paymentId.paymentMethod
+        );
+        setSelectPayment(choosePayment);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   useEffect(() => {
-    const fetchOrder = async (orderId) => {
-      try {
-        const response = await getOrderById(orderId);
-        if (response && response.order && response.orderDetail) {
-          setOrder(response.order);
-          setOrderDetail(response.orderDetail);
-          const choosePayment = payMethods.find(
-            (item) => item.id == response.order.paymentId.paymentMethod
-          );
-          setSelectPayment(choosePayment);
-        }
-      } catch (error) {
-        console.log(error);
-      }
-    };
     if (orderId) {
       fetchOrder(orderId);
     }
   }, [orderId]);
+
+  // Kiểm tra xem đơn hàng có thể hủy không (chỉ hủy được khi đang ở trạng thái Pending hoặc Processing)
+  const canCancel =
+    order?.status === "Pending" ||
+    order?.status === "Processing" ||
+    order?.status === "Shipped";
+
+  // Kiểm tra xem đơn hàng có thể đặt lại không (chỉ đặt lại khi đã hoàn thành hoặc đã hủy)
+  const canReorder =
+    order?.status === "Delivered" || order?.status === "Cancelled";
+
+  // Xử lý hủy đơn hàng
+  const handleCancelOrder = async () => {
+    Alert.alert("Cancel Order", "Are you sure you want to cancel this order?", [
+      {
+        text: "No",
+        style: "cancel",
+      },
+      {
+        text: "Yes",
+        onPress: async () => {
+          try {
+            setLoading(true);
+            // Gọi API hủy đơn hàng
+            const response = await deleteOrder(orderId);
+            console.log("response, delete", response);
+
+            if (response) {
+              // Hiển thị thông báo thành công
+              ShowMessage("success", "Success", "Order cancelled successfully");
+
+              // Đợi một chút để người dùng thấy thông báo
+              setTimeout(async () => {
+                const response = await getOrderByUser(userId);
+                setOrders(response);
+                setLoading(false);
+              }, 500);
+            } else {
+              // Hiển thị thông báo lỗi nếu API trả về lỗi
+              ShowMessage(
+                "error",
+                "Error",
+                response?.message || "Failed to cancel order"
+              );
+              setLoading(false);
+            }
+          } catch (error) {
+            console.log("Cancel order error:", error);
+            ShowMessage(
+              "error",
+              "Error",
+              "Failed to cancel order. Please try again."
+            );
+            setLoading(false);
+          }
+        },
+      },
+    ]);
+  };
+
+  // Xử lý đặt lại đơn hàng
+  const handleReorder = () => {
+    // Chuyển thông tin sản phẩm vào giỏ hàng
+    if (orderDetail && orderDetail.length > 0) {
+      // Thêm sản phẩm vào giỏ hàng và chuyển đến trang giỏ hàng
+      // Đây là phần giả định, bạn cần thay thế bằng logic thực tế của ứng dụng
+      Alert.alert("Reorder", "Do you want to add these items to your cart?", [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Yes",
+          onPress: () => {
+            // Thêm logic thêm vào giỏ hàng ở đây
+            navigation.navigate("checklist");
+          },
+        },
+      ]);
+    }
+  };
 
   // console.log("orderDetail", orderDetail);
   // console.log("order", order);
@@ -69,9 +167,37 @@ const OrderDetailsScreen = () => {
             </View>
 
             {/* Order Status */}
-            <Text style={{ color: PRIMARY_COLOR, marginLeft: 270 }}>
-              Status: {order?.paymentId?.status}
-            </Text>
+            <View style={styles.statusContainer}>
+              <Text style={[styles.statusValue, { color: PRIMARY_COLOR }]}>
+                {order?.paymentId?.status} payment
+              </Text>
+            </View>
+
+            {/* Order Status */}
+            {order?.status && (
+              <View style={styles.statusContainer}>
+                <Text style={styles.statusLabel}>Order Status:</Text>
+                <Text
+                  style={[
+                    styles.statusValue,
+                    {
+                      color:
+                        order.status === "Delivered"
+                          ? "#4CAF50"
+                          : order.status === "Cancelled"
+                          ? "#F44336"
+                          : order.status === "Shipped"
+                          ? "#2196F3"
+                          : order.status === "Processing"
+                          ? "#FF9800"
+                          : "#9E9E9E",
+                    },
+                  ]}
+                >
+                  {order.status}
+                </Text>
+              </View>
+            )}
 
             {/* Product List */}
             <ScrollView>
@@ -191,12 +317,48 @@ const OrderDetailsScreen = () => {
           </View>
         )}
       </ScrollView>
-      {/* Total */}
-      <View style={styles.totalContainer}>
-        <Text style={styles.totalLabel}>Total:</Text>
-        <Text style={styles.totalAmount}>
-          {order?.totalAmount.toLocaleString("vi-VN")} VNĐ
-        </Text>
+
+      {/* Total and Action Buttons */}
+      <View style={styles.bottomContainer}>
+        <View style={styles.totalContainer}>
+          <Text style={styles.totalLabel}>Total:</Text>
+          <Text style={styles.totalAmount}>
+            {order?.totalAmount.toLocaleString("vi-VN")} VNĐ
+          </Text>
+        </View>
+
+        {/* Hiển thị các nút hành động chỉ khi không phải đơn hàng mới */}
+        {!isNewOrder && order && (
+          <View style={styles.actionButtonsContainer}>
+            {canCancel && (
+              <TouchableOpacity
+                style={[
+                  styles.actionButton,
+                  styles.cancelButton,
+                  loading && styles.disabledButton,
+                ]}
+                onPress={handleCancelOrder}
+                disabled={loading}
+              >
+                {loading ? (
+                  <Text style={styles.cancelButtonText}>Processing...</Text>
+                ) : (
+                  <Text style={styles.cancelButtonText}>Cancel Order</Text>
+                )}
+              </TouchableOpacity>
+            )}
+
+            {canReorder && (
+              <TouchableOpacity
+                style={[styles.actionButton, styles.reorderButton]}
+                onPress={handleReorder}
+                disabled={loading}
+              >
+                <Text style={styles.reorderButtonText}>Re-order</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -239,7 +401,20 @@ const styles = StyleSheet.create({
     color: "gray",
     marginVertical: 5,
   },
-
+  statusContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    marginBottom: 10,
+  },
+  statusLabel: {
+    fontSize: 14,
+    marginRight: 5,
+  },
+  statusValue: {
+    fontSize: 14,
+    // fontWeight: "bold",
+  },
   productItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -313,13 +488,19 @@ const styles = StyleSheet.create({
     marginRight: 16,
     fontSize: 14,
   },
+  bottomContainer: {
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
+    paddingTop: 10,
+    paddingBottom: 20,
+    backgroundColor: "white",
+  },
   totalContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 15,
+    paddingVertical: 10,
     gap: 20,
-    // marginVertical: 20,
   },
   totalLabel: {
     fontSize: 18,
@@ -331,6 +512,38 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: PRIMARY_COLOR,
     marginLeft: 20,
+  },
+  actionButtonsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    paddingHorizontal: 20,
+    marginTop: 10,
+  },
+  actionButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    minWidth: 150,
+    alignItems: "center",
+  },
+  cancelButton: {
+    backgroundColor: "#FEE2E2",
+    borderWidth: 1,
+    borderColor: "#F44336",
+  },
+  cancelButtonText: {
+    color: "#F44336",
+    fontWeight: "bold",
+  },
+  reorderButton: {
+    backgroundColor: PRIMARY_COLOR,
+  },
+  reorderButtonText: {
+    color: "white",
+    fontWeight: "bold",
+  },
+  disabledButton: {
+    opacity: 0.7,
   },
   paymethod: {
     width: 167,

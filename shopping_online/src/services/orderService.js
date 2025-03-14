@@ -10,3 +10,9 @@ export const getOrderById = (orderId) =>
   apiService.get(`${endpoint}/${orderId}/orderId`);
 
 export const createOrder = (data) => apiService.post(endpoint, data);
+
+export const updateOrder = (orderId, data) =>
+  apiService.put(`${endpoint}/${orderId}`, data);
+
+export const deleteOrder = (orderId) =>
+  apiService.delete(`${endpoint}/${orderId}`);

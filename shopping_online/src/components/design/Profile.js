@@ -12,7 +12,7 @@ const Profile = ({ navigation }) => {
       <View style={styles.container}>
         <Header />
 
-        <Text style={styles.title}>Account Setting</Text>
+        <Text style={styles.title}>Profile</Text>
 
         {/* setting item */}
         <View>

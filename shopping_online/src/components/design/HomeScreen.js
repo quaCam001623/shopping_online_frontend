@@ -87,13 +87,13 @@ const HomeScreen = ({ navigation }) => {
 
                   <Text style={styles.name}>{item.name}</Text>
                   <Text style={styles.price}> Rs. {item.price}</Text>
-                  <View style={styles.heart}></View>
+                  {/* <View style={styles.heart}></View>
                   <Entypo
                     name="heart-outlined"
                     size={24}
                     color="black"
                     style={{ position: "absolute", top: 35, right: 34 }}
-                  />
+                  /> */}
                 </TouchableOpacity>
               ))
             ) : (

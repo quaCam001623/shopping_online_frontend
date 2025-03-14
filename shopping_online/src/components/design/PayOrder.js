@@ -86,7 +86,7 @@ const PayOrder = ({ navigation }) => {
         orderItems: selectedProduct,
       };
       const response = await createOrder(orderData);
-      console.log("repsonse", response);
+      // console.log("repsonse", response);
       if (response) {
         if (isSelected.length > 0) {
           await Promise.all(isSelected.map((item) => deleteC(item)));

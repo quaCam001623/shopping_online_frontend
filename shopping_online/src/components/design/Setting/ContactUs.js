@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,9 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
+  Alert,
+  Modal,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Header from "../../common/Header";
@@ -14,18 +17,202 @@ import AntDesign from "@expo/vector-icons/AntDesign";
 import { MaterialIcons, FontAwesome, Entypo } from "@expo/vector-icons";
 import Footer from "../../common/Footer";
 import { PRIMARY_COLOR } from "../../../utils/enums";
+import { AuthContext } from "../../../common/context/AuthContext";
+import { createMessage } from "../../../services/messageServive";
 
-const ContactUs = () => {
+const ContactUs = ({ navigation }) => {
+  const { user } = useContext(AuthContext);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
     subject: "",
     message: "",
+    email: "",
   });
+
+  // const [loginForm, setLoginForm] = useState({
+  //   email: "",
+  //   password: "",
+  // });
+
+  // const [showLoginModal, setShowLoginModal] = useState(false);
+  // const [loginError, setLoginError] = useState("");
+
+  // Check if user is logged in
+  useEffect(() => {
+    const checkLoginStatus = async () => {
+      try {
+        if (user) {
+          setIsLoggedIn(true);
+          // Pre-fill form with user data
+          setForm((prevForm) => ({
+            ...prevForm,
+            firstName: user.firstName || "",
+            lastName: user.lastName || "",
+            email: user.email || "",
+          }));
+        }
+      } catch (error) {
+        console.error("Error checking login status:", error);
+      }
+    };
+
+    checkLoginStatus();
+  }, []);
+
+  // Handle send message
+  const handleSendMessage = async () => {
+    try {
+      setLoading(true);
+      // Validate form
+      if (!form.firstName || !form.lastName || !form.subject || !form.message) {
+        Alert.alert("Error", "Please fill in all required fields");
+        setLoading(false);
+        return;
+      }
+
+      const messageData = {
+        firstName: form.firstName,
+        lastName: form.lastName,
+        subject: form.subject,
+        message: form.message,
+        email: form.email,
+      };
+
+      // Add user ID if logged in
+      if (isLoggedIn && user) {
+        messageData.userId = user._id;
+      }
+
+      const response = await createMessage(messageData);
+
+      if (response.data && response.data.success) {
+        Alert.alert("Success", "Your message has been sent successfully");
+
+        // Clear form except user info
+        setForm((prevForm) => ({
+          firstName: isLoggedIn ? user.firstName : "",
+          lastName: isLoggedIn ? user.lastName : "",
+          email: isLoggedIn ? user.email : "",
+          subject: "",
+          message: "",
+        }));
+      }
+    } catch (error) {
+      console.error("Send message error:", error);
+      Alert.alert(
+        "Error",
+        error.response?.data?.message ||
+          "Failed to send message. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Login Modal
+  // const renderLoginModal = () => {
+  //   return (
+  //     <Modal
+  //       visible={showLoginModal}
+  //       transparent={true}
+  //       animationType="slide"
+  //       onRequestClose={() => setShowLoginModal(false)}
+  //     >
+  //       <View style={styles.modalContainer}>
+  //         <View style={styles.modalContent}>
+  //           <Text style={styles.modalTitle}>Login</Text>
+
+  //           {loginError ? (
+  //             <Text style={styles.errorText}>{loginError}</Text>
+  //           ) : null}
+
+  //           <Text style={styles.inputTitle}>Email</Text>
+  //           <TextInput
+  //             style={styles.input}
+  //             placeholder="Enter your email"
+  //             value={loginForm.email}
+  //             onChangeText={(text) =>
+  //               setLoginForm({ ...loginForm, email: text })
+  //             }
+  //             keyboardType="email-address"
+  //             autoCapitalize="none"
+  //           />
+
+  //           <Text style={styles.inputTitle}>Password</Text>
+  //           <TextInput
+  //             style={styles.input}
+  //             placeholder="Enter your password"
+  //             value={loginForm.password}
+  //             onChangeText={(text) =>
+  //               setLoginForm({ ...loginForm, password: text })
+  //             }
+  //             secureTextEntry
+  //           />
+
+  //           <View style={styles.modalButtons}>
+  //             <TouchableOpacity
+  //               style={[
+  //                 styles.button,
+  //                 { backgroundColor: "#ccc", marginRight: 10 },
+  //               ]}
+  //               onPress={() => setShowLoginModal(false)}
+  //             >
+  //               <Text style={styles.buttonText}>Cancel</Text>
+  //             </TouchableOpacity>
+
+  //             <TouchableOpacity
+  //               style={styles.button}
+  //               onPress={handleLogin}
+  //               disabled={loading}
+  //             >
+  //               {loading ? (
+  //                 <ActivityIndicator color="#fff" size="small" />
+  //               ) : (
+  //                 <Text style={styles.buttonText}>Login</Text>
+  //               )}
+  //             </TouchableOpacity>
+  //           </View>
+
+  //           <TouchableOpacity
+  //             style={styles.registerLink}
+  //             onPress={() => {
+  //               setShowLoginModal(false);
+  //               navigation.navigate("Register");
+  //             }}
+  //           >
+  //             <Text style={styles.registerText}>
+  //               Don't have an account? Register here
+  //             </Text>
+  //           </TouchableOpacity>
+  //         </View>
+  //       </View>
+  //     </Modal>
+  //   );
+  // };
+
   return (
     <SafeAreaView style={styles.container}>
-      <Header />
-      <Text style={styles.title}>Contact Us</Text>
+      <Header navigation={navigation} />
+      {/* <Text style={styles.title}>Contact Us</Text> */}
+      {/* Account setting */}
+      <View style={styles.box}>
+        <TouchableOpacity
+          style={{ flexDirection: "row", gap: 20 }}
+          onPress={() => navigation.goBack()}
+        >
+          <AntDesign
+            name="left"
+            size={18}
+            color="#777290"
+            style={{ marginRight: 10 }}
+          />
+
+          <Text style={styles.textLeft}>Contact Us</Text>
+        </TouchableOpacity>
+      </View>
       <Text
         style={{
           fontSize: 12,
@@ -38,22 +225,6 @@ const ContactUs = () => {
         Bloom Outfits says your 50% discount on clothes and shoes up to 80% off.
       </Text>
 
-      {/* Contact us */}
-      <View style={styles.box}>
-        <View style={{ flexDirection: "row", gap: 20 }}>
-          <SimpleLineIcons
-            name="envelope-letter"
-            size={18}
-            color="#777290"
-            style={styles.iconLeft}
-          />
-          <Text style={styles.textLeft}>Contact Us</Text>
-        </View>
-        <TouchableOpacity>
-          <AntDesign name="right" size={18} color="#777290" />
-        </TouchableOpacity>
-      </View>
-
       <ScrollView>
         <View style={styles.content}>
           {/* Contact Information Section */}
@@ -65,35 +236,76 @@ const ContactUs = () => {
 
             <View style={styles.infoItem}>
               <FontAwesome name="phone" size={18} color="white" />
-              <Text style={styles.infoText}>+01700000000</Text>
+              <Text style={styles.infoText}>0328126702</Text>
             </View>
 
             <View style={styles.infoItem}>
               <MaterialIcons name="email" size={18} color="white" />
-              <Text style={styles.infoText}>uihuotoflex@gmail.com</Text>
+              <Text style={styles.infoText}>lannthe172785@fpt.edu.vn</Text>
             </View>
 
             <View style={styles.infoItem}>
               <Entypo name="location-pin" size={18} color="white" />
-              <Text style={styles.infoText}>Sylhet, Bangladesh</Text>
+              <Text style={styles.infoText}>Thạch Thất, Hà Nội</Text>
             </View>
+
+            {/* Login/Logout Button */}
+            {!isLoggedIn ? (
+              <TouchableOpacity
+                style={styles.authButton}
+                onPress={() => navigation.navigate("login")}
+              >
+                <Text style={styles.authButtonText}>Login to contact us</Text>
+              </TouchableOpacity>
+            ) : (
+              ""
+            )}
+            {/* <TouchableOpacity
+              style={styles.authButton}
+              onPress={
+                isLoggedIn ? handleLogout : () => setShowLoginModal(true)
+              }
+            >
+              <Text style={styles.authButtonText}>
+                {isLoggedIn ? "Logout" : "Login to Contact Us"}
+              </Text>
+            </TouchableOpacity> */}
+
+            {isLoggedIn && user && (
+              <Text style={styles.welcomeText}>
+                Welcome, {user.firstName} {user.lastName}
+              </Text>
+            )}
           </View>
 
           {/* Contact Form Section */}
-
           <Text style={styles.inputTitle}>First Name</Text>
           <TextInput
             style={[styles.input]}
             placeholder="First Name"
             value={form.firstName}
             onChangeText={(text) => setForm({ ...form, firstName: text })}
+            editable={!isLoggedIn} // Disable if logged in
           />
+
           <Text style={styles.inputTitle}>Last Name</Text>
           <TextInput
             style={styles.input}
             placeholder="Last Name"
             value={form.lastName}
             onChangeText={(text) => setForm({ ...form, lastName: text })}
+            editable={!isLoggedIn} // Disable if logged in
+          />
+
+          <Text style={styles.inputTitle}>Email</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            value={form.email}
+            onChangeText={(text) => setForm({ ...form, email: text })}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            editable={!isLoggedIn} // Disable if logged in
           />
 
           <Text style={styles.inputTitle}>Subject </Text>
@@ -114,16 +326,27 @@ const ContactUs = () => {
             onChangeText={(text) => setForm({ ...form, message: text })}
           />
 
-          <TouchableOpacity style={styles.button}>
-            <Text style={styles.buttonText}>Send</Text>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={handleSendMessage}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Text style={styles.buttonText}>Send</Text>
+            )}
           </TouchableOpacity>
         </View>
 
         {/* Footer */}
-        <View style={{ marginBottom: 150 }}>
+        <View style={{ marginBottom: 200 }}>
           <Footer />
         </View>
       </ScrollView>
+
+      {/* Login Modal */}
+      {/* {renderLoginModal()} */}
     </SafeAreaView>
   );
 };
@@ -261,5 +484,64 @@ const styles = StyleSheet.create({
   inputActive: {
     borderColor: PRIMARY_COLOR,
     backgroundColor: "#FFF5F7", // Màu nhạt hơn khi active
+  },
+  // Login Modal Styles
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  modalContent: {
+    width: "80%",
+    backgroundColor: "white",
+    borderRadius: 10,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  modalButtons: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 20,
+  },
+  errorText: {
+    color: "red",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  registerLink: {
+    marginTop: 20,
+    alignItems: "center",
+  },
+  registerText: {
+    color: PRIMARY_COLOR,
+    textDecorationLine: "underline",
+  },
+  authButton: {
+    backgroundColor: "white",
+    padding: 10,
+    borderRadius: 5,
+    alignItems: "center",
+    marginTop: 20,
+  },
+  authButtonText: {
+    color: PRIMARY_COLOR,
+    fontWeight: "bold",
+  },
+  welcomeText: {
+    color: "white",
+    marginTop: 10,
+    textAlign: "center",
+    fontWeight: "bold",
   },
 });

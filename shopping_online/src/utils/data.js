@@ -59,7 +59,7 @@ export const payMethods = [
   {
     id: "cash",
     name: "Tiền mặt",
-    description: "Thanh toán bằng tiền mặt khi lên xe",
+    description: "Thanh toán bằng tiền mặt khi nhận hàng",
     icon: "money-bill-wave",
   },
   {

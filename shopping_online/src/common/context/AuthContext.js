@@ -1,11 +1,11 @@
 import React, { createContext, useEffect, useState } from "react";
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { jwtDecode } from "jwt-decode"; // Import thư viện decode JWT
 import { loginApi } from "../../services/loginService";
 import { getAddressByUser } from "../../services/shippingAddressService";
 import { getCards } from "../../services/cardService";
 import { getUserById } from "../../services/userService";
+import { getOrderByUser } from "../../services/orderService";
 
 const AuthContext = createContext();
 const AuthProvider = ({ children }) => {
@@ -14,6 +14,7 @@ const AuthProvider = ({ children }) => {
   const [user, setUser] = useState();
   const [address, setAddress] = useState([]);
   const [cards, setCards] = useState([]);
+  const [orders, setOrders] = useState();
 
   // When app is starting, check the token in AsyncStorage
   useEffect(() => {
@@ -47,6 +48,9 @@ const AuthProvider = ({ children }) => {
 
           const responseCard = await getCards(userId);
           if (responseCard) setCards(responseCard);
+
+          const resposeOrder = await getOrderByUser(userId);
+          if (resposeOrder) setOrders(resposeOrder);
         }
       } catch (error) {
         console.log(error);
@@ -103,6 +107,8 @@ const AuthProvider = ({ children }) => {
         setCards,
         user,
         setUser,
+        orders,
+        setOrders,
       }}
     >
       {children}

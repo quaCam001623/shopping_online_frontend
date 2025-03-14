@@ -1,15 +1,18 @@
 import React from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-const TopLeft = () => {
+const TopLeft = ({ navigation }) => {
   return (
-    <View style={styles.topLeft}>
+    <TouchableOpacity
+      style={styles.topLeft}
+      onPress={() => navigation.navigate("Main")}
+    >
       <Image
         style={styles.image}
         source={require("../../../assets/icon.png")}
       />
       <Text style={{ fontSize: 24, fontWeight: 600 }}>Bloom</Text>
-    </View>
+    </TouchableOpacity>
   );
 };
 

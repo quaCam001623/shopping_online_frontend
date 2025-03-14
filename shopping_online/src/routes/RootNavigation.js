@@ -10,6 +10,7 @@ import AccountSetting from "../components/design/Setting/AccountSetting";
 import ContactUs from "../components/design/Setting/ContactUs";
 import OrderHistory from "../components/design/Setting/OrderHistory";
 import ThumnailScreen from "../components/design/ThumnailScreen";
+import WishList from "../components/design/WishList";
 import Login from "../components/login/Login";
 import Register from "../components/login/Register";
 import TabNavigator from "./TabNavigation";
@@ -42,6 +43,11 @@ const screens = [
     name: "checklist",
     component: CheckList,
     options: { headerShown: true, title: "Shopping Bag" },
+  },
+  {
+    name: "wishlist",
+    component: WishList,
+    options: { headerShown: false },
   },
   {
     name: "payorder",

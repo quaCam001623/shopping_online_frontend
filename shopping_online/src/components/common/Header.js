@@ -5,8 +5,12 @@ import AntDesign from "@expo/vector-icons/AntDesign";
 import Feather from "@expo/vector-icons/Feather";
 import TopLeft from "./TopLeft";
 import { AuthContext } from "../../common/context/AuthContext";
+import { useRoute } from "@react-navigation/native";
+import { PRIMARY_COLOR } from "../../utils/enums";
 
 const Header = ({ navigation }) => {
+  const route = useRoute();
+  const heartIconColor = route.name === "wishlist" ? PRIMARY_COLOR : "black";
   const { cards } = useContext(AuthContext);
   const [numberCard, setNumberCard] = useState(0);
   useEffect(() => {
@@ -16,10 +20,21 @@ const Header = ({ navigation }) => {
   }, [cards]); // Runs only when `cards` changes
   return (
     <View style={styles.container}>
-      <TopLeft />
+      <TopLeft navigation={navigation} />
       <View style={styles.topRight}>
         <Ionicons name="notifications-outline" size={24} color="black" />
-        <AntDesign name="hearto" size={24} color="black" />
+
+        {/* wishlist */}
+        <TouchableOpacity
+          onPress={() => {
+            console.log("click whissh list");
+            navigation.navigate("wishlist");
+          }}
+        >
+          <AntDesign name="hearto" size={24} color={heartIconColor} />
+        </TouchableOpacity>
+
+        {/* shopping bag */}
         <TouchableOpacity onPress={() => navigation.navigate("checklist")}>
           <Feather
             name="shopping-bag"

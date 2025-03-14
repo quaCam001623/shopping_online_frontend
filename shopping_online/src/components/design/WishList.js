@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,48 +7,86 @@ import {
   StyleSheet,
   TouchableOpacity,
   FlatList,
+  Alert,
 } from "react-native";
-
 import Header from "../common/Header";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Feather from "@expo/vector-icons/Feather";
-import { product } from "../../utils/data";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { PRIMARY_COLOR } from "../../utils/enums";
-
-import Bottom from "../common/Bottom";
 import ModalWishlist from "../common/ModalWishlist";
-import HeaderNav from "../common/HeaderNav";
+import { AuthContext } from "../../common/context/AuthContext";
+import { getProductById } from "../../services/productService";
+import {
+  deleteWishlist,
+  getWishlistByUser,
+} from "../../services/wishlistService";
 
 const WishList = ({ navigation }) => {
   const [modalVisible, setModalVisible] = useState(false);
+  const [productDetails, setProductDetails] = useState(null);
+  const { userId } = useContext(AuthContext);
+  const [wishlist, setWishlist] = useState([]);
 
-  const handleOpentModal = () => {
-    setModalVisible(true);
-    console.log("open modal");
+  const fetchProductDetails = async (productId) => {
+    try {
+      const response = await getProductById(productId);
+      if (response) setProductDetails(response);
+    } catch (error) {
+      console.log(error);
+    }
   };
+  const fetchWishlist = async () => {
+    const response = await getWishlistByUser(userId);
+    if (response) setWishlist(response);
+  };
+
+  useEffect(() => {
+    fetchWishlist();
+  }, []);
+
+  console.log("productDetails", productDetails);
+
+  const handleOpentModal = (productId) => {
+    setModalVisible(true);
+    fetchProductDetails(productId);
+  };
+
+  const deleteProduct = async (productId) => {
+    await deleteWishlist(userId, productId);
+    fetchWishlist();
+  };
+
+  const confirmDelete = (productId) => {
+    Alert.alert(
+      "Delete product",
+      "Are you sure you want to delete this product?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          onPress: () => deleteProduct(productId),
+          style: "destructive",
+        },
+      ]
+    );
+  };
+
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <View
         style={[styles.container, modalVisible == true && styles.modalOpen]}
         // style={styles.container}
       >
-        <Header />
+        <Header navigation={navigation} />
         {/* Header navigate */}
 
         {/* product List */}
         <View>
-          <View
-            style={{
-              alignItems: "center",
-              justifyContent: "start",
-              flexDirection: "row",
-              marginBottom: 30,
-            }}
-          >
+          <View style={styles.navigateIcon}>
             <TouchableOpacity
-              // onPress={() => navigation.goBack()}
+              onPress={() => navigation.goBack()}
               style={styles.backButton}
             >
               <AntDesign name="arrowleft" size={24} color="black" />
@@ -57,10 +95,11 @@ const WishList = ({ navigation }) => {
             {/* Tiêu đề */}
             <Text style={styles.title}>Wishlist</Text>
           </View>
-          <View style={{ height: 600 }}>
+
+          <View>
             <FlatList
-              data={product}
-              keyExtractor={(item) => item.id}
+              data={wishlist}
+              keyExtractor={(item) => item._id}
               renderItem={({ item }) => (
                 <View style={styles.card}>
                   <View
@@ -70,12 +109,20 @@ const WishList = ({ navigation }) => {
                       justifyContent: "center",
                     }}
                   >
-                    <Image style={styles.image} source={item.img} />
+                    <Image
+                      style={styles.image}
+                      // source={item.productId.images[0]}
+                      source={
+                        item.productId.images.length > 0
+                          ? { uri: item.productId.images[0] }
+                          : require("../../../assets/icon.png")
+                      }
+                    />
                     <View style={{ width: 150, gap: 5 }}>
                       <Text style={{ fontSize: 17, fontWeight: "500" }}>
-                        {item.name}
+                        {item.productId.name}
                       </Text>
-                      <Text>Rs. {item.price}</Text>
+                      <Text>Rs. {item.productId.price}</Text>
                     </View>
                   </View>
 
@@ -83,7 +130,9 @@ const WishList = ({ navigation }) => {
                   <View
                     style={{ alignItems: "center", justifyContent: "center" }}
                   >
-                    <TouchableOpacity onPress={() => handleOpentModal()}>
+                    <TouchableOpacity
+                      onPress={() => handleOpentModal(item.productId._id)}
+                    >
                       <Feather
                         name="shopping-bag"
                         size={24}
@@ -103,12 +152,17 @@ const WishList = ({ navigation }) => {
                         }}
                       />
                     </TouchableOpacity>
-                    <Feather
-                      name="trash-2"
-                      size={24}
-                      color="#FFB3A2"
-                      style={{ paddingVertical: 10 }}
-                    />
+
+                    <TouchableOpacity
+                      onPress={() => confirmDelete(item.productId._id)}
+                    >
+                      <Feather
+                        name="trash-2"
+                        size={24}
+                        color="#FFB3A2"
+                        style={{ paddingVertical: 10 }}
+                      />
+                    </TouchableOpacity>
                   </View>
                 </View>
               )}
@@ -117,7 +171,7 @@ const WishList = ({ navigation }) => {
         </View>
 
         {/* Bottom */}
-        <Bottom />
+        {/* <Bottom /> */}
       </View>
 
       {/* Modal */}
@@ -135,6 +189,8 @@ const WishList = ({ navigation }) => {
           <ModalWishlist
             modalVisible={modalVisible}
             setModalVisible={setModalVisible}
+            productDetails={productDetails}
+            navigation={navigation}
           />
         </View>
       )}
@@ -147,7 +203,7 @@ export default WishList;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    margin: 20,
+    marginHorizontal: 20,
   },
   modalOpen: {
     opacity: 0.5,
@@ -178,5 +234,11 @@ const styles = StyleSheet.create({
     height: 85,
     borderRadius: 15,
     marginRight: 20,
+  },
+  navigateIcon: {
+    alignItems: "center",
+    justifyContent: "start",
+    flexDirection: "row",
+    marginBottom: 30,
   },
 });

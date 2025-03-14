@@ -1,8 +1,10 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { SERVER_URL } from "./baseService";
 
 const api = axios.create({
-  baseURL: "http://localhost:9999", // Thay bằng URL của server
+  // baseURL: "http://localhost:9999", // Thay bằng URL của server
+  baseURL: SERVER_URL, // Thay bằng URL của server
   headers: { "Content-Type": "application/json" },
 });
 
@@ -46,11 +48,12 @@ const apiService = {
   delete: async (endpoint) => {
     try {
       const response = await api.delete(endpoint);
-      if (response.ok) {
-        return true;
-      } else {
-        return false;
-      }
+      return response.data;
+      // if (response.ok) {
+      //   return true;
+      // } else {
+      //   return false;
+      // }
     } catch (error) {
       console.log(error);
     }

@@ -9,6 +9,11 @@ import { getProductById } from "../../services/productService";
 import ShowMessage from "../../funtions/Message";
 import { createCard, getCards, updateCard } from "../../services/cardService";
 import { AuthContext } from "../../common/context/AuthContext";
+import {
+  createWishlist,
+  deleteWishlist,
+  getWishlistByUser,
+} from "../../services/wishlistService";
 
 const Details = ({ navigation }) => {
   const route = useRoute();
@@ -17,26 +22,39 @@ const Details = ({ navigation }) => {
   const [selectedSize, setSelectedSize] = useState(null);
   const [availableColors, setAvailableColors] = useState([]);
   const [selectedColor, setSelectedColor] = useState(null);
-  const { userId } = useContext(AuthContext);
-  const [cards, setCards] = useState([]);
+  const { userId, cards, setCards } = useContext(AuthContext);
+  // const [cards, setCards] = useState([]);
+  const [isInWishlist, setIsInWishlist] = useState(false);
+  const [allWishlist, setAllWishlist] = useState([]);
 
   // console.log("userId", userId);
 
-  useEffect(() => {
-    const fetchCarts = async (userId) => {
-      try {
-        const response = await getCards(userId);
-        if (response) {
-          setCards(response);
-        }
-      } catch (error) {
-        console.error("Error fetching cards:", error);
-      }
-    };
-    if (userId) {
-      fetchCarts(userId);
+  // useEffect(() => {
+  //   const fetchCarts = async (userId) => {
+  //     try {
+  //       const response = await getCards(userId);
+  //       if (response) {
+  //         setCards(response);
+  //       }
+  //     } catch (error) {
+  //       console.error("Error fetching cards:", error);
+  //     }
+  //   };
+  //   if (userId) {
+  //     fetchCarts(userId);
+  //   }
+  // }, [userId]);
+  const fetchWishlist = async (userId) => {
+    const response = await getWishlistByUser(userId);
+    if (response) {
+      setAllWishlist(response);
     }
+  };
+  useEffect(() => {
+    if (userId) fetchWishlist(userId);
   }, [userId]);
+
+  console.log("allWishlist", allWishlist);
 
   // const id = "67c0afbaf78379ad964d7942";
   // console.log("id", id);
@@ -49,6 +67,15 @@ const Details = ({ navigation }) => {
     };
     fetch();
   }, [id]);
+
+  useEffect(() => {
+    if (allWishlist && productDetails) {
+      const inWishlist = allWishlist.find((item) => item.productId._id === id);
+      if (inWishlist) {
+        setIsInWishlist(true);
+      }
+    }
+  }, [allWishlist, productDetails]);
 
   // console.log("product Details", productDetails);
 
@@ -114,6 +141,37 @@ const Details = ({ navigation }) => {
     }
   };
 
+  const handleWishlistToggle = async () => {
+    console.log("isInWishlist", isInWishlist);
+    try {
+      if (!userId) {
+        navigation.navigate("login");
+        return;
+      }
+
+      if (isInWishlist) {
+        // Logic to remove from wishlist
+        await deleteWishlist(userId, id);
+        setIsInWishlist(false);
+        fetchWishlist(userId);
+        ShowMessage("success", "Removed", "Removed from wishlist");
+      } else {
+        // Logic to add to wishlist
+        const response = await createWishlist({
+          userId,
+          productId: id,
+        });
+        if (response) {
+          setIsInWishlist(true);
+          fetchWishlist(userId);
+          ShowMessage("success", "Added", "Added to wishlist");
+        }
+      }
+    } catch (error) {
+      console.error("Error updating wishlist:", error);
+    }
+  };
+
   const sizes = ["S", "M", "L", "XL"];
 
   return (
@@ -152,8 +210,9 @@ const Details = ({ navigation }) => {
             <Feather
               name="heart"
               size={24}
-              color="black"
+              color={isInWishlist ? PRIMARY_COLOR : "black"}
               style={{ position: "absolute", right: 0, top: 10 }}
+              onPress={handleWishlistToggle}
             />
             {/* Description */}
             <View style={styles.description}>
@@ -188,24 +247,6 @@ const Details = ({ navigation }) => {
                     </Text>
                   </TouchableOpacity>
                 ))}
-                {/* <View
-                  style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 5,
-                    backgroundColor: PRIMARY_COLOR,
-                  }}
-                >
-                  <Text
-                    style={{
-                      textAlign: "center",
-                      paddingTop: 10,
-                      color: "white",
-                    }}
-                  >
-                    2XL
-                  </Text>
-                </View> */}
               </View>
             </View>
 
