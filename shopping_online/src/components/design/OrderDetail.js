@@ -33,6 +33,7 @@ const OrderDetailsScreen = () => {
   const [selectPayment, setSelectPayment] = useState("");
   const [loading, setLoading] = useState(false);
   const { setOrders, userId } = useContext(AuthContext);
+  const [canReorder, setCanReorder] = useState(false);
 
   const fetchOrder = async (orderId) => {
     try {
@@ -63,8 +64,11 @@ const OrderDetailsScreen = () => {
     order?.status === "Shipped";
 
   // Kiểm tra xem đơn hàng có thể đặt lại không (chỉ đặt lại khi đã hoàn thành hoặc đã hủy)
-  const canReorder =
-    order?.status === "Delivered" || order?.status === "Cancelled";
+  useEffect(() => {
+    if (order?.status === "Delivered" || order?.status === "Cancelled") {
+      setCanReorder(true);
+    }
+  }, [order]);
 
   // Xử lý hủy đơn hàng
   const handleCancelOrder = async () => {

@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from "react-native";
-import { Checkbox, IconButton, Button } from "react-native-paper";
+import { IconButton, Button } from "react-native-paper";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import { PRIMARY_COLOR } from "../../utils/enums";
 import { SafeAreaView } from "react-native-safe-area-context";

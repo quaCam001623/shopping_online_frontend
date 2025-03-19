@@ -50,12 +50,12 @@ export const payMethods = [
     description: "Thanh toán bằng mã QR qua VNPay",
     icon: "qrcode",
   },
-  {
-    id: "vnpay_online",
-    name: "Thanh toán trực tuyến",
-    description: "Thanh toán trực tuyến qua VNPay",
-    icon: "credit-card",
-  },
+  // {
+  //   id: "vnpay_online",
+  //   name: "Thanh toán trực tuyến",
+  //   description: "Thanh toán trực tuyến qua VNPay",
+  //   icon: "credit-card",
+  // },
   {
     id: "cash",
     name: "Tiền mặt",

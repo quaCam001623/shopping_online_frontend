@@ -46,7 +46,12 @@ const PayOrder = ({ navigation }) => {
       if (userId) {
         const responseAddress = await getAddressByUser(userId);
         if (responseAddress) {
+          const defaultAddress = responseAddress.find(
+            (item) => item.isDefault === true
+          );
           setAddress(responseAddress);
+          setChooseAddress(defaultAddress);
+          setSelectedAddress(defaultAddress._id);
         }
       }
     } catch (error) {
@@ -81,7 +86,7 @@ const PayOrder = ({ navigation }) => {
       const orderData = {
         userId,
         totalAmount,
-        paymentMethod,
+        paymentMethod: "cash",
         shippingAddress: selectedAddress,
         orderItems: selectedProduct,
       };
@@ -124,7 +129,7 @@ const PayOrder = ({ navigation }) => {
   //   }
   // };
 
-  const handleChoosePaymentMethod = (item) => {
+  const handleChoosePaymentMethod = () => {
     if (!chooseAddress) {
       ShowMessage(
         "error",
@@ -134,25 +139,28 @@ const PayOrder = ({ navigation }) => {
       return;
     }
 
-    setPaymentMethod(item.id);
-
-    // Điều hướng theo từng phương thức thanh toán
-    switch (item.id) {
-      case "vnpay_qr":
-        navigation.navigate("VNPayQR", { amount: totalAmount });
-        break;
-      case "vnpay_online":
-        navigation.navigate("VNPayOnline", { amount: totalAmount });
-        break;
-      case "vnpay_bank":
-        navigation.navigate("VNPayBank", { amount: totalAmount });
-        break;
-      case "cash":
-        handleCompleteOrder();
-        break;
-      default:
-        break;
+    if (paymentMethod === "cash") {
+      handleCompleteOrder();
+    } else {
+      // Điều hướng theo từng phương thức thanh toán
+      navigation.navigate(paymentMethod, { amount: totalAmount });
     }
+    //   switch (paymentMethod) {
+    //   case "vnpay_qr":
+    //     navigation.navigate("VNPayQR", { amount: totalAmount });
+    //     break;
+    //   case "vnpay_online":
+    //     navigation.navigate("VNPayOnline", { amount: totalAmount });
+    //     break;
+    //   case "vnpay_bank":
+    //     navigation.navigate("VNPayBank", { amount: totalAmount });
+    //     break;
+    //   case "cash":
+    //     handleCompleteOrder();
+    //     break;
+    //   default:
+    //     break;
+    // }
   };
 
   return (
@@ -216,8 +224,8 @@ const PayOrder = ({ navigation }) => {
               <TouchableOpacity
                 key={item.id}
                 style={styles.paymentOption}
-                onPress={() => handleChoosePaymentMethod(item)}
-                // onPress={() => setPaymentMethod(item.id)}
+                // onPress={() => handleChoosePaymentMethod(item)}
+                onPress={() => setPaymentMethod(item.id)}
               >
                 <FontAwesome5 name={item.icon} size={20} color="black" />
                 <View
@@ -274,9 +282,9 @@ const PayOrder = ({ navigation }) => {
           )}
 
           {/* Button */}
-          {/* <TouchableOpacity onPress={() => handleChoosePaymentMethod()}>
+          <TouchableOpacity onPress={() => handleChoosePaymentMethod()}>
             <ButtonText text="Pay and Complete Order" />
-          </TouchableOpacity> */}
+          </TouchableOpacity>
         </View>
       </View>
     </SafeAreaView>

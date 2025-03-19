@@ -16,8 +16,8 @@ import { useRoute } from "@react-navigation/native";
 const Completed = ({ navigation }) => {
   const route = useRoute();
   const { orderId } = route.params;
-  console.log("route.params", route.params);
-  console.log("route.params.orderId", route.params?.orderId);
+  // console.log("route.params", route.params);
+  // console.log("route.params.orderId", route.params?.orderId);
   return (
     <SafeAreaView>
       <View styles={styles.container}>

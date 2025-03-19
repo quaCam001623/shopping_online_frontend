@@ -65,17 +65,17 @@ const screens = [
     options: { headerShown: true, title: "Order Details" },
   },
   {
-    name: "VNPayQR",
+    name: "vnpay_qr",
     component: VNPayQR,
     options: { headerShown: false },
   },
   {
-    name: "VNPayBank",
+    name: "vnpay_bank",
     component: VNPayBank,
     options: { headerShown: false },
   },
   {
-    name: "VNPayOnline",
+    name: "vnpay_online",
     component: VNPayOnline,
     options: { headerShown: false },
   },

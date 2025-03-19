@@ -28,7 +28,10 @@ const ListAddressModal = ({
             {address.map((item) => (
               <TouchableOpacity
                 key={item._id}
-                style={styles.addressBox}
+                style={[
+                  styles.addressBox,
+                  chooseAddress?._id === item._id && styles.addressBoxActive,
+                ]}
                 onPress={() => {
                   setChooseAddress(item);
                   //   setModalVisible(false);
@@ -123,5 +126,10 @@ const styles = StyleSheet.create({
   buttonTextSave: {
     color: "white",
     fontWeight: "bold",
+  },
+  addressBoxActive: {
+    backgroundColor: "#ccc",
+    color: "white",
+    borderRadius: 10,
   },
 });

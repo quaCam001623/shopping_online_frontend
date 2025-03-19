@@ -27,6 +27,7 @@ import OrderHistory from "./src/components/design/Setting/OrderHistory";
 import Toast from "react-native-toast-message";
 import { AuthProvider } from "./src/common/context/AuthContext";
 import ModalAddress from "./src/components/common/ModalAddress";
+import AdminDashboard from "./src/components/admin/AdminDashboard";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -53,7 +54,7 @@ const App = () => {
         {/* <HeaderNav screen="Home" /> */}
         {/* <CheckList /> */}
         {/* <PayOrder /> */}
-        <ModalAddress />
+        {/* <ModalAddress /> */}
         {/* <Completed /> */}
         {/* <OrderDetail /> */}
         {/* <Categories /> */}
@@ -66,6 +67,7 @@ const App = () => {
         {/* <AccountSetting /> */}
         {/* <ContactUs /> */}
         {/* <OrderHistory /> */}
+        <AdminDashboard />
       </SafeAreaProvider>
     </AuthProvider>
   );

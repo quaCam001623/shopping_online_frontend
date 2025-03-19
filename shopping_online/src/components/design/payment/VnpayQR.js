@@ -9,6 +9,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const VNPayQR = () => {
   const route = useRoute();
+
   const navigation = useNavigation();
   const { amount } = route.params;
   const [url, setUrl] = useState("");
@@ -17,16 +18,24 @@ const VNPayQR = () => {
     const fetchOrder = async () => {
       try {
         const data = {
+          orderId: "BK-" + Math.floor(100000 + Math.random() * 900000),
+          totalPrice: amount,
+          orderInfo: ``,
+          orderType: `Thanh toán online`,
           bankCode: "VNPAYQR",
-          amount,
         };
+
+        data.orderInfo = `Thanh toán ${amount} VNĐ với mã đơn hàng ${data.orderId}`;
+
         const paymentUrl = await createURLPayment(data);
-        if (!paymentUrl) {
+        console.log("paymentUrl, ", paymentUrl.data);
+        if (paymentUrl.status === 200) {
+          setUrl(paymentUrl.data.url);
+        } else {
           console.log("Fail to create QR");
           ShowMessage("error", "Error", "Fail to create QR");
           return;
         }
-        setUrl(paymentUrl);
       } catch (error) {
         console.log(error);
       }

@@ -10,7 +10,7 @@ const Profile = ({ navigation }) => {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "white" }}>
       <View style={styles.container}>
-        <Header />
+        <Header navigation={navigation} />
 
         <Text style={styles.title}>Profile</Text>
 
