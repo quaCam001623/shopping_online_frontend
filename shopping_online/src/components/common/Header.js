@@ -22,7 +22,9 @@ const Header = ({ navigation }) => {
     <View style={styles.container}>
       <TopLeft navigation={navigation} />
       <View style={styles.topRight}>
-        <Ionicons name="notifications-outline" size={24} color="black" />
+        <TouchableOpacity onPress={() => navigation.navigate("chat")}>
+          <Ionicons name="chatbubbles-outline" size={24} color="black" />
+        </TouchableOpacity>
 
         {/* wishlist */}
         <TouchableOpacity

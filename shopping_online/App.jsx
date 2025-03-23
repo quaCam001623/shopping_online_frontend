@@ -28,6 +28,7 @@ import Toast from "react-native-toast-message";
 import { AuthProvider } from "./src/common/context/AuthContext";
 import ModalAddress from "./src/components/common/ModalAddress";
 import AdminDashboard from "./src/components/admin/AdminDashboard";
+import Chat from "./src/components/design/Chat";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -67,7 +68,8 @@ const App = () => {
         {/* <AccountSetting /> */}
         {/* <ContactUs /> */}
         {/* <OrderHistory /> */}
-        <AdminDashboard />
+        {/* <AdminDashboard /> */}
+        {/* <Chat /> */}
       </SafeAreaProvider>
     </AuthProvider>
   );

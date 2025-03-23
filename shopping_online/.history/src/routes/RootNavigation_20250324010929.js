@@ -99,7 +99,7 @@ const screens = [
   {
     name: "chat",
     component: Chat,
-    options: { headerShown: true, title: "Chat" },
+    options: { headerShown: false },
   },
   {
     name: "chatMessage",
