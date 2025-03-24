@@ -41,17 +41,18 @@ const PayOrder = ({ navigation }) => {
     month: "long",
     year: "numeric",
   });
+
   const fetchAddress = async () => {
     try {
       if (userId) {
         const responseAddress = await getAddressByUser(userId);
         if (responseAddress) {
           const defaultAddress = responseAddress.find(
-            (item) => item.isDefault === true
+            (item) => item?.isDefault === true
           );
           setAddress(responseAddress);
           setChooseAddress(defaultAddress);
-          setSelectedAddress(defaultAddress._id);
+          setSelectedAddress(defaultAddress?._id);
         }
       }
     } catch (error) {
@@ -143,7 +144,17 @@ const PayOrder = ({ navigation }) => {
       handleCompleteOrder();
     } else {
       // Điều hướng theo từng phương thức thanh toán
-      navigation.navigate(paymentMethod, { amount: totalAmount });
+      navigation.navigate(paymentMethod, {
+        amount: totalAmount,
+        orderData: {
+          userId,
+          totalAmount,
+          paymentMethod,
+          shippingAddress: selectedAddress,
+          orderItems: selectedProduct,
+        },
+        isSelected,
+      });
     }
     //   switch (paymentMethod) {
     //   case "vnpay_qr":
