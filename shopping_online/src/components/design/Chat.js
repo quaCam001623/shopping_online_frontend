@@ -1,4 +1,11 @@
-import React, { useState, useEffect, useRef, useContext } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useContext,
+  useCallback,
+  useMemo,
+} from "react";
 import {
   View,
   Text,
@@ -11,11 +18,13 @@ import {
   StatusBar,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
+import PropTypes from "prop-types";
 import io from "socket.io-client";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
-  getAllChatMessages,
   createChatMessage,
   getChatMessages,
 } from "../../services/chatMessageService";
@@ -46,53 +55,95 @@ const Chat = () => {
   const [messages, setMessages] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const flatListRef = useRef(null);
   const { userId, user } = useContext(AuthContext);
 
   console.log("userId", userId);
-  console.log("user", user);
+  // console.log("user", user);
 
   // Lấy tin nhắn từ API
-  const fetchMessages = async () => {
-    try {
-      setLoading(true);
-      // Sử dụng chatMessageService để lấy tin nhắn
-      const data = await getChatMessages(userId);
-      console.log("Dữ liệu tin nhắn từ API:", JSON.stringify(data));
-
-      if (Array.isArray(data)) {
-        const formattedMessages = data.map((msg, index) => ({
-          content: msg.text,
-          sender: msg.username || msg.sender,
-          id: msg.userId,
-          timestamp: msg.timestamp,
-          _key: msg._id || `api-msg-${index}-${Date.now()}`,
-        }));
-
-        setMessages(formattedMessages);
-
-        // Cuộn xuống dưới sau khi tải tin nhắn
-        setTimeout(() => {
-          flatListRef.current?.scrollToEnd({ animated: true });
-        }, 200);
-      }
-    } catch (err) {
-      console.error("Lỗi khi tải tin nhắn từ API:", err);
-      setError(`Không thể tải tin nhắn: ${err?.message || "Lỗi kết nối"}`);
-
-      // Nếu không thể kết nối API, tải tin nhắn từ bộ nhớ cục bộ
-      loadMessagesFromStorage().then((savedMessages) => {
-        if (savedMessages && savedMessages.length > 0) {
-          setMessages(savedMessages);
-          setTimeout(() => {
-            flatListRef.current?.scrollToEnd({ animated: true });
-          }, 200);
+  const fetchMessages = useCallback(
+    async (pageNum = 1, refresh = false) => {
+      try {
+        if (pageNum === 1) {
+          setLoading(true);
         }
-      });
-    } finally {
-      setLoading(false);
+        setError(null);
+
+        // Lấy tin nhắn từ API với phân trang
+        // Giả sử API hỗ trợ phân trang với tham số page và limit
+        const data = await getChatMessages(userId);
+        console.log("data", data);
+        if (Array.isArray(data)) {
+          const formattedMessages = data.map((msg) => ({
+            text: msg.text || "",
+            username: msg.username || "",
+            userId: msg.userId,
+            sender: msg.sender || "user",
+            timestamp: msg.timestamp,
+            read: msg.read || false,
+            _id: msg._id,
+          }));
+
+          // Cập nhật danh sách tin nhắn
+          if (pageNum === 1 || refresh) {
+            setMessages(formattedMessages);
+          } else {
+            // Nối tin nhắn cũ vào đầu danh sách
+            setMessages((prevMessages) => [
+              ...formattedMessages,
+              ...prevMessages,
+            ]);
+          }
+
+          // Kiểm tra xem còn tin nhắn cũ hơn không
+          setHasMoreMessages(formattedMessages.length === 20);
+
+          // Lưu tin nhắn vào bộ nhớ cục bộ khi tải từ API
+          if (pageNum === 1) {
+            await saveMessagesToStorage(formattedMessages);
+          }
+        } else {
+          setHasMoreMessages(false);
+        }
+      } catch (err) {
+        console.error("Lỗi khi tải tin nhắn từ API:", err);
+        setError(`Không thể tải tin nhắn: ${err?.message || "Lỗi kết nối"}`);
+
+        // Nếu là lần đầu tiên tải, thử tải từ bộ nhớ cục bộ
+        if (pageNum === 1) {
+          const savedMessages = await loadMessagesFromStorage();
+          if (savedMessages && savedMessages.length > 0) {
+            setMessages(savedMessages);
+          }
+        }
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [userId]
+  );
+
+  // Hàm để tải thêm tin nhắn cũ hơn
+  const loadMoreMessages = useCallback(() => {
+    if (hasMoreMessages && !loading && !refreshing) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchMessages(nextPage);
     }
-  };
+  }, [fetchMessages, hasMoreMessages, loading, page, refreshing]);
+
+  // Hàm làm mới danh sách tin nhắn
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setPage(1);
+    fetchMessages(1, true);
+  }, [fetchMessages]);
 
   // Lưu tin nhắn xuống bộ nhớ cục bộ
   const saveMessagesToStorage = async (updatedMessages) => {
@@ -122,7 +173,7 @@ const Chat = () => {
 
   useEffect(() => {
     // Tải tin nhắn từ API khi component mount
-    fetchMessages();
+    fetchMessages(1);
 
     // Xử lý kết nối socket
     socket.on("connect", () => {
@@ -146,6 +197,9 @@ const Chat = () => {
 
         setMessages(formattedMsgs);
 
+        // Lưu tin nhắn vào bộ nhớ cục bộ khi nhận từ socket
+        saveMessagesToStorage(formattedMsgs);
+
         // Cuộn xuống dưới sau khi tải tin nhắn
         setTimeout(() => {
           flatListRef.current?.scrollToEnd({ animated: true });
@@ -161,33 +215,49 @@ const Chat = () => {
       try {
         console.log("Tin nhắn mới từ server:", JSON.stringify(msg));
 
-        // Kiểm tra nếu là tin nhắn người dùng đã gửi từ thiết bị này
-        // Nếu tin nhắn này có cùng nội dung và thời gian gần với tin nhắn cuối cùng
-        // thì không thêm vào để tránh trùng lặp
-        const formattedMsg = safeFormatMessage(msg, messages.length);
+        // Kiểm tra nếu tin nhắn rỗng hoặc không hợp lệ
+        if (!msg || !msg.text) {
+          console.log("Bỏ qua tin nhắn không hợp lệ:", msg);
+          return;
+        }
 
-        setMessages((prevMessages) => {
-          // Kiểm tra xem tin nhắn có bị trùng không
-          const lastMsg = prevMessages[prevMessages.length - 1];
+        // Kiểm tra nếu là tin nhắn trùng lặp (có thể là echo từ server)
+        const lastMsg = messages[messages.length - 1];
+        if (
+          lastMsg &&
+          lastMsg.text === msg.text &&
+          lastMsg.userId === msg.userId &&
+          new Date(msg.timestamp) - new Date(lastMsg.timestamp) < 5000
+        ) {
+          console.log("Bỏ qua tin nhắn trùng lặp:", msg);
+          return;
+        }
 
-          // Nếu đã có tin nhắn cục bộ với cùng nội dung gần đây (trong vòng 5 giây)
-          if (
-            lastMsg &&
-            lastMsg.isLocalMessage &&
-            lastMsg.content === formattedMsg.content &&
-            new Date(formattedMsg.timestamp) - new Date(lastMsg.timestamp) <
-              5000
-          ) {
-            return prevMessages; // Không thêm tin nhắn trùng
-          }
+        // Chỉ thêm tin nhắn từ người khác hoặc từ server/admin
+        if (msg.sender === "admin" || msg.userId !== user._id) {
+          // Format tin nhắn để đảm bảo có đủ các trường
+          const formattedMsg = {
+            text: msg.text || "",
+            username: msg.username || "Admin",
+            userId: msg.userId,
+            sender: msg.sender || "admin",
+            timestamp: msg.timestamp || new Date().toISOString(),
+            read: false,
+            _id: msg._id || `socket-${Date.now()}`,
+          };
 
-          return [...prevMessages, formattedMsg];
-        });
+          setMessages((prevMessages) => {
+            const updatedMessages = [...prevMessages, formattedMsg];
+            // Lưu tin nhắn vào bộ nhớ cục bộ khi nhận tin nhắn mới
+            saveMessagesToStorage(updatedMessages);
+            return updatedMessages;
+          });
 
-        // Cuộn xuống dưới khi có tin nhắn mới
-        setTimeout(() => {
-          flatListRef.current?.scrollToEnd({ animated: true });
-        }, 100);
+          // Cuộn xuống dưới khi có tin nhắn mới
+          setTimeout(() => {
+            flatListRef.current?.scrollToEnd({ animated: true });
+          }, 100);
+        }
       } catch (err) {
         console.error("Lỗi khi xử lý tin nhắn mới:", err);
         setError("Lỗi khi nhận tin nhắn mới");
@@ -215,69 +285,51 @@ const Chat = () => {
     try {
       if (typeof msg === "string") {
         return {
-          content: msg,
-          sender: "Người dùng",
-          id: null,
+          text: msg,
+          sender: "user",
+          userId: user?._id,
           timestamp: new Date().toISOString(),
-          _key: `msg-str-${index}-${Date.now()}`,
+          _id: `msg-str-${index}-${Date.now()}`,
         };
       }
 
       if (typeof msg === "object" && msg !== null) {
-        // Kiểm tra nếu content chứa một đối tượng tin nhắn đầy đủ (trường hợp lồng nhau)
-        if (
-          msg.content &&
-          typeof msg.content === "object" &&
-          msg.content.content
-        ) {
-          return {
-            content: String(msg.content.content),
-            sender: msg.content.sender || "Người dùng",
-            id: msg.content.id || msg.id || null,
-            timestamp: msg.content.timestamp || new Date().toISOString(),
-            _key: `msg-nested-${index}-${Date.now()}`,
-          };
-        }
-
-        // Xử lý tin nhắn thông thường
-        let content = "";
-        let sender = msg.sender || msg.username || "Người dùng";
-
-        if (typeof msg.content === "string") {
-          content = msg.content;
-        } else if (msg.content !== undefined) {
-          content = String(msg.content);
-        } else if (msg.text) {
-          // Trường hợp API trả về text thay vì content
-          content = msg.text;
-        } else {
-          content = "[Nội dung không hỗ trợ]";
-        }
+        // Trường hợp API trả về text thay vì content
+        const text =
+          msg.text ||
+          (msg.content ? String(msg.content) : "[Nội dung không hỗ trợ]");
+        const sender = msg.sender || "user";
 
         return {
-          content: content,
+          text: text,
+          username:
+            msg.username ||
+            (sender === "admin"
+              ? "Admin"
+              : user?.firstName + " " + user?.lastName),
+          userId: msg.userId || user?._id,
           sender: sender,
-          id: msg.userId || msg.id || null,
           timestamp: msg.timestamp || new Date().toISOString(),
-          _key: `msg-obj-${index}-${Date.now()}`,
+          read: msg.read || false,
+          _id: msg._id || `msg-obj-${index}-${Date.now()}`,
         };
       }
 
       return {
-        content: "Tin nhắn không hợp lệ",
-        sender: "Hệ thống",
-        id: null,
+        text: "Tin nhắn không hợp lệ",
+        sender: "admin",
+        userId: null,
         timestamp: new Date().toISOString(),
-        _key: `msg-inv-${index}-${Date.now()}`,
+        _id: `msg-inv-${index}-${Date.now()}`,
       };
     } catch (err) {
       console.error("Lỗi định dạng tin nhắn:", err, msg);
       return {
-        content: "Lỗi xử lý tin nhắn",
-        sender: "Hệ thống",
-        id: null,
+        text: "Lỗi xử lý tin nhắn",
+        sender: "admin",
+        userId: null,
         timestamp: new Date().toISOString(),
-        _key: `msg-err-${index}-${Date.now()}`,
+        _id: `msg-err-${index}-${Date.now()}`,
       };
     }
   };
@@ -285,34 +337,26 @@ const Chat = () => {
   const sendMessage = async () => {
     if (message.trim()) {
       try {
+        setSending(true);
         // Tạo đối tượng tin nhắn
         const newMessage = {
           text: message,
-          sender: "user",
           username: `${user.firstName} ${user.lastName}`,
           userId: user._id,
+          sender: "user",
           timestamp: new Date().toISOString(),
-        };
-
-        // Tạo tin nhắn cục bộ để hiển thị ngay
-        const localMessage = {
-          content: message,
-          sender: `${user.firstName} ${user.lastName}`,
-          id: user._id, // Sử dụng user._id thay vì socket.id để phân biệt
-          timestamp: new Date().toISOString(),
-          _key: `msg-local-${Date.now()}`,
-          isLocalMessage: true, // Đánh dấu tin nhắn cục bộ
+          read: false,
         };
 
         // Cập nhật UI trước
         setMessages((prevMessages) => {
-          const updatedMessages = [...prevMessages, localMessage];
+          const updatedMessages = [...prevMessages, newMessage];
           saveMessagesToStorage(updatedMessages);
           return updatedMessages;
         });
 
         // Gửi tin nhắn qua socket
-        socket.emit("chat message", message);
+        socket.emit("chat message", newMessage);
 
         // Gửi tin nhắn lên API sử dụng chatMessageService
         const response = await createChatMessage(newMessage);
@@ -331,6 +375,8 @@ const Chat = () => {
       } catch (err) {
         console.error("Lỗi gửi tin nhắn:", err);
         setError(`Không thể gửi tin nhắn: ${err?.message || "Lỗi kết nối"}`);
+      } finally {
+        setSending(false);
       }
     }
   };
@@ -348,54 +394,97 @@ const Chat = () => {
     }
   };
 
-  // Render từng tin nhắn
-  const renderMessage = ({ item }) => {
-    // Kiểm tra nếu là tin nhắn của người dùng hiện tại
-    // hoặc là tin nhắn có sender là "user"
-    const isMyMessage =
-      item.id === user._id ||
-      item.isLocalMessage ||
-      item.sender === "user" ||
-      (typeof item.sender === "string" && item.sender.toLowerCase() === "user");
+  // Hiển thị ngày
+  const formatDate = (timestamp) => {
+    try {
+      const date = new Date(timestamp);
+      return date.toLocaleDateString();
+    } catch (e) {
+      return "";
+    }
+  };
 
+  // Kiểm tra xem có cần hiển thị ngày không
+  const shouldShowDate = (currentMsg, prevMsg) => {
+    if (!prevMsg) return true;
+
+    const currentDate = new Date(currentMsg.timestamp).toDateString();
+    const prevDate = new Date(prevMsg.timestamp).toDateString();
+
+    return currentDate !== prevDate;
+  };
+
+  // Render header ngày
+  const renderDateHeader = (date) => {
     return (
-      <View
-        style={[
-          styles.messageContainer,
-          isMyMessage
-            ? styles.myMessageContainer
-            : styles.otherMessageContainer,
-        ]}
-      >
-        {!isMyMessage && <Text style={styles.senderName}>{item.sender}</Text>}
-
-        <View
-          style={[
-            styles.messageBubble,
-            isMyMessage ? styles.myMessageBubble : styles.otherMessageBubble,
-          ]}
-        >
-          <Text
-            style={[
-              styles.messageText,
-              isMyMessage ? styles.myMessageText : styles.otherMessageText,
-            ]}
-          >
-            {item.content}
-          </Text>
-        </View>
-
-        <Text
-          style={[
-            styles.timestamp,
-            isMyMessage ? styles.myTimestamp : styles.otherTimestamp,
-          ]}
-        >
-          {formatTime(item.timestamp)}
-        </Text>
+      <View style={styles.dateContainer}>
+        <Text style={styles.dateText}>{formatDate(date)}</Text>
       </View>
     );
   };
+
+  // Render message
+  const renderMessage = useCallback(
+    ({ item, index }) => {
+      const isUserMessage = item.sender === "user";
+      const prevMsg = index > 0 ? messages[index - 1] : null;
+      const showDate = shouldShowDate(item, prevMsg);
+
+      return (
+        <>
+          {showDate && renderDateHeader(item.timestamp)}
+          <View
+            style={[
+              styles.messageContainer,
+              isUserMessage
+                ? styles.userMessageContainer
+                : styles.adminMessageContainer,
+            ]}
+          >
+            {!isUserMessage && (
+              <Text style={styles.senderName}>{item.username}</Text>
+            )}
+            <View
+              style={[
+                styles.messageBubble,
+                isUserMessage ? styles.userBubble : styles.adminBubble,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.messageText,
+                  isUserMessage
+                    ? styles.userMessageText
+                    : styles.adminMessageText,
+                ]}
+              >
+                {item.text || ""}
+              </Text>
+            </View>
+            <View style={styles.messageInfo}>
+              <Text style={styles.timestamp}>
+                {formatTime(item.timestamp)}
+                {isUserMessage && (
+                  <Text style={styles.readStatus}>
+                    {" "}
+                    · {item.read ? "Read" : "Delivered"}
+                  </Text>
+                )}
+              </Text>
+            </View>
+          </View>
+        </>
+      );
+    },
+    [messages]
+  );
+
+  // Hàm cuộn xuống cuối
+  const scrollToBottom = useCallback(() => {
+    if (flatListRef.current && messages.length > 0) {
+      flatListRef.current.scrollToEnd({ animated: true });
+    }
+  }, [messages.length]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -408,8 +497,9 @@ const Chat = () => {
           <Text style={styles.headerTitle}>Trò chuyện</Text>
         </View> */}
 
-        {loading && (
+        {loading && messages.length === 0 && (
           <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={PRIMARY_COLOR} />
             <Text style={styles.loadingText}>Đang tải tin nhắn...</Text>
           </View>
         )}
@@ -426,32 +516,70 @@ const Chat = () => {
           </View>
         )}
 
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          renderItem={renderMessage}
-          keyExtractor={(item) => item._key || `fallback-${Math.random()}`}
-          contentContainerStyle={styles.messagesContainer}
-          onContentSizeChange={() =>
-            flatListRef.current?.scrollToEnd({ animated: true })
-          }
-        />
+        {messages.length === 0 && !loading ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>
+              No messages yet. Start a conversation!
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            keyExtractor={(item) =>
+              item._id || item._key || Math.random().toString()
+            }
+            renderItem={renderMessage}
+            style={styles.messageList}
+            contentContainerStyle={styles.messageListContent}
+            inverted={false}
+            onContentSizeChange={scrollToBottom}
+            onLayout={scrollToBottom}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={[PRIMARY_COLOR]}
+                tintColor={PRIMARY_COLOR}
+              />
+            }
+            onEndReached={loadMoreMessages}
+            onEndReachedThreshold={0.1}
+            ListFooterComponent={
+              loading && messages.length > 0 ? (
+                <View style={styles.loadingMoreContainer}>
+                  <ActivityIndicator size="small" color={PRIMARY_COLOR} />
+                  <Text style={styles.loadingMoreText}>
+                    Đang tải thêm tin nhắn...
+                  </Text>
+                </View>
+              ) : null
+            }
+          />
+        )}
 
         <View style={styles.inputContainer}>
           <TextInput
-            style={styles.input}
             value={message}
             onChangeText={setMessage}
-            placeholder="Nhập tin nhắn..."
-            placeholderTextColor="#999"
+            placeholder="Type a message..."
+            style={styles.input}
             multiline
+            disabled={sending}
           />
           <TouchableOpacity
-            style={styles.sendButton}
+            style={[
+              styles.sendButton,
+              (!message.trim() || sending) && styles.sendButtonDisabled,
+            ]}
             onPress={sendMessage}
-            disabled={!message.trim()}
+            disabled={!message.trim() || sending}
           >
-            <Text style={styles.sendButtonText}>Gửi</Text>
+            {sending ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <Text style={styles.sendButtonText}>Send</Text>
+            )}
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -487,59 +615,68 @@ const styles = StyleSheet.create({
     paddingBottom: 15,
   },
   messageContainer: {
-    marginVertical: 5,
+    marginVertical: 4,
     maxWidth: "80%",
   },
-  myMessageContainer: {
+  userMessageContainer: {
     alignSelf: "flex-end",
   },
-  otherMessageContainer: {
+  adminMessageContainer: {
     alignSelf: "flex-start",
   },
   senderName: {
-    color: "#666",
     fontSize: 12,
-    marginLeft: 5,
+    color: "#666666",
     marginBottom: 2,
   },
   messageBubble: {
-    padding: 10,
-    borderRadius: 18,
-    elevation: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 1,
+    padding: 12,
+    borderRadius: 16,
+    maxWidth: "100%",
   },
-  myMessageBubble: {
+  userBubble: {
     backgroundColor: PRIMARY_COLOR,
-    borderBottomRightRadius: 5,
+    borderBottomRightRadius: 4,
   },
-  otherMessageBubble: {
-    backgroundColor: "white",
-    borderBottomLeftRadius: 5,
+  adminBubble: {
+    backgroundColor: "#E8E8E8",
+    borderBottomLeftRadius: 4,
   },
   messageText: {
     fontSize: 16,
+    lineHeight: 20,
   },
-  myMessageText: {
-    color: "white",
+  userMessageText: {
+    color: "#FFFFFF",
   },
-  otherMessageText: {
-    color: "#333",
+  adminMessageText: {
+    color: "#000000",
+  },
+  messageInfo: {
+    marginTop: 4,
+    flexDirection: "row",
+    alignItems: "center",
   },
   timestamp: {
-    fontSize: 10,
-    marginTop: 2,
-    color: "#999",
+    fontSize: 12,
+    color: "#666666",
   },
-  myTimestamp: {
-    alignSelf: "flex-end",
-    marginRight: 5,
+  readStatus: {
+    fontSize: 12,
+    color: "#666666",
   },
-  otherTimestamp: {
-    alignSelf: "flex-start",
-    marginLeft: 5,
+  dateContainer: {
+    alignItems: "center",
+    marginVertical: 10,
+  },
+  dateText: {
+    fontSize: 12,
+    color: "#666666",
+    backgroundColor: "#E0E0E0",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    overflow: "hidden",
   },
   errorContainer: {
     backgroundColor: "#ffebee",
@@ -590,18 +727,46 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold",
   },
+  sendButtonDisabled: {
+    backgroundColor: "#ccc",
+  },
   loadingContainer: {
-    padding: 10,
+    flex: 1,
+    justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#e3f2fd",
-    marginHorizontal: 10,
-    marginTop: 10,
-    borderRadius: 8,
+    padding: 20,
   },
   loadingText: {
     color: "#1976d2",
     fontSize: 14,
-    fontWeight: "bold",
+    marginTop: 10,
+  },
+  loadingMoreContainer: {
+    padding: 10,
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
+  },
+  loadingMoreText: {
+    marginLeft: 8,
+    color: "#666666",
+    fontSize: 12,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emptyText: {
+    color: "#666",
+    fontSize: 16,
+  },
+  messageList: {
+    flex: 1,
+  },
+  messageListContent: {
+    padding: 10,
+    paddingBottom: 15,
   },
 });
 

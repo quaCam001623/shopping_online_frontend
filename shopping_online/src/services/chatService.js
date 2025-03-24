@@ -1,8 +1,17 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SERVER_URL } from "./baseService";
+import apiService from "./apiService";
 
-// Get chat history
+const endpoint = "/api/chats";
+
+// export const getMessagesByUser = () => apiService.get(endpoint);
+// export const updateMessage = (userId, data) =>
+//   apiService.put(`${endpoint}/update/${userId}`, data);
+// export const createMessage = (data) =>
+//   apiService.post(`${endpoint}/create`, data);
+
+// // Get chat history
 export const getChatHistory = async (userId, token) => {
   try {
     // Ưu tiên sử dụng userId và token từ tham số

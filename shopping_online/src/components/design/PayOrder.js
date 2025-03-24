@@ -264,6 +264,15 @@ const PayOrder = ({ navigation }) => {
             </Text>
           </View>
 
+          <View style={styles.flexBox}>
+            <Text>Price</Text>
+            <Text>{(totalAmount - 15000).toLocaleString("vi-Vn")} VNĐ</Text>
+          </View>
+          <View style={styles.flexBox}>
+            <Text>Shipping</Text>
+            <Text>{(15000).toLocaleString("vi-Vn")} VNĐ</Text>
+          </View>
+
           {/* Total */}
           <View style={styles.flexBox}>
             <Text>Amount Payable</Text>
@@ -293,7 +302,10 @@ const PayOrder = ({ navigation }) => {
           )}
 
           {/* Button */}
-          <TouchableOpacity onPress={() => handleChoosePaymentMethod()}>
+          <TouchableOpacity
+            onPress={() => handleChoosePaymentMethod()}
+            style={{ marginTop: 10 }}
+          >
             <ButtonText text="Pay and Complete Order" />
           </TouchableOpacity>
         </View>
@@ -350,7 +362,7 @@ const styles = StyleSheet.create({
     height: 20,
     borderBottomColor: PRIMARY_COLOR,
     borderBottomWidth: 0.5,
-    marginVertical: 10,
+    marginVertical: 15,
   },
   flexBox: {
     flexDirection: "row",

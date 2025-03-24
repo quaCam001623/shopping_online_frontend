@@ -1,6 +1,20 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, {
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+} from "react";
 import { useRoute } from "@react-navigation/native";
-import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+} from "react-native";
+import PropTypes from "prop-types";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { globalStyles, PRIMARY_COLOR } from "../../utils/enums";
 import AntDesign from "@expo/vector-icons/AntDesign";
@@ -17,67 +31,54 @@ import {
 
 const Details = ({ navigation }) => {
   const route = useRoute();
-  const { id } = route.params; // Nhận id từ params
+  const { id } = route.params;
   const [productDetails, setProductDetails] = useState({});
   const [selectedSize, setSelectedSize] = useState(null);
   const [availableColors, setAvailableColors] = useState([]);
   const [selectedColor, setSelectedColor] = useState(null);
   const { userId, cards, setCards } = useContext(AuthContext);
-  // const [cards, setCards] = useState([]);
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [allWishlist, setAllWishlist] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // console.log("userId", userId);
-
-  // useEffect(() => {
-  //   const fetchCarts = async (userId) => {
-  //     try {
-  //       const response = await getCards(userId);
-  //       if (response) {
-  //         setCards(response);
-  //       }
-  //     } catch (error) {
-  //       console.error("Error fetching cards:", error);
-  //     }
-  //   };
-  //   if (userId) {
-  //     fetchCarts(userId);
-  //   }
-  // }, [userId]);
-  const fetchWishlist = async (userId) => {
-    const response = await getWishlistByUser(userId);
-    if (response) {
-      setAllWishlist(response);
+  const fetchWishlist = useCallback(async (userId) => {
+    try {
+      const response = await getWishlistByUser(userId);
+      if (response) {
+        setAllWishlist(response);
+      }
+    } catch (error) {
+      console.error("Error fetching wishlist:", error);
     }
-  };
+  }, []);
+
   useEffect(() => {
     if (userId) fetchWishlist(userId);
-  }, [userId]);
+  }, [userId, fetchWishlist]);
 
-  console.log("allWishlist", allWishlist);
-
-  // const id = "67c0afbaf78379ad964d7942";
-  // console.log("id", id);
   useEffect(() => {
-    const fetch = async () => {
-      const response = await getProductById(id);
-      if (response) {
-        setProductDetails(response);
+    const fetchProductDetails = async () => {
+      try {
+        setIsLoading(true);
+        const response = await getProductById(id);
+        if (response) {
+          setProductDetails(response);
+        }
+      } catch (error) {
+        console.error("Error fetching product details:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
-    fetch();
+    fetchProductDetails();
   }, [id]);
 
   useEffect(() => {
     if (allWishlist && productDetails) {
       const inWishlist = allWishlist.find((item) => item.productId._id === id);
-      if (inWishlist) {
-        setIsInWishlist(true);
-      }
+      setIsInWishlist(!!inWishlist);
     }
-  }, [allWishlist, productDetails]);
-
-  // console.log("product Details", productDetails);
+  }, [allWishlist, productDetails, id]);
 
   useEffect(() => {
     if (selectedSize && productDetails.productDetails) {
@@ -88,61 +89,66 @@ const Details = ({ navigation }) => {
     }
   }, [selectedSize, productDetails]);
 
-  const handleSelectedSize = (item) => {
+  const handleSelectedSize = useCallback((item) => {
     setSelectedSize(item);
     setSelectedColor(null);
-  };
+  }, []);
 
-  const handleAddToCart = async (text) => {
-    try {
-      if (!selectedColor || !selectedSize) {
-        ShowMessage("error", "Error", "You have to select size and color!!!");
-        return;
-      }
-
-      if (!userId) {
-        navigation.navigate("login");
-        return;
-      }
-
-      const selectedProductDetail = productDetails.productDetails.find(
-        (item) => item.size === selectedSize && item.color === selectedColor
-      );
-
-      const existCard = cards.find(
-        (item) => item.productDetailId._id === selectedProductDetail._id
-      );
-
-      if (text === "addtocard") {
-        ShowMessage("success", "Successfully", "Add to cart successfully");
-        if (existCard) {
-          await updateCard(existCard._id, { quantity: existCard.quantity + 1 });
-        } else {
-          await addtoCard(userId, {
-            productDetailId: selectedProductDetail._id,
-          });
+  const handleAddToCart = useCallback(
+    async (text) => {
+      try {
+        if (!selectedColor || !selectedSize) {
+          ShowMessage("error", "Error", "You have to select size and color!!!");
+          return;
         }
-      } else if (text === "buy") {
-        if (existCard) {
-          navigation.navigate("checklist", { cardId: existCard._id });
-        } else {
-          const response = await createCard(userId, {
-            productDetailId: selectedProductDetail._id,
-          });
 
-          if (response && response.data.data) {
-            const newCardId = response.data.data._id;
-            navigation.navigate("checklist", { cardId: newCardId });
+        if (!userId) {
+          navigation.navigate("login");
+          return;
+        }
+
+        const selectedProductDetail = productDetails.productDetails.find(
+          (item) => item.size === selectedSize && item.color === selectedColor
+        );
+
+        const existCard = cards.find(
+          (item) => item.productDetailId._id === selectedProductDetail._id
+        );
+
+        if (text === "addtocard") {
+          ShowMessage("success", "Successfully", "Add to cart successfully");
+          if (existCard) {
+            await updateCard(existCard._id, {
+              quantity: existCard.quantity + 1,
+            });
+          } else {
+            await addtoCard(userId, {
+              productDetailId: selectedProductDetail._id,
+            });
+          }
+        } else if (text === "buy") {
+          if (existCard) {
+            navigation.navigate("checklist", { cardId: existCard._id });
+          } else {
+            const response = await createCard(userId, {
+              productDetailId: selectedProductDetail._id,
+            });
+
+            if (response && response.data.data) {
+              const newCardId = response.data.data._id;
+              navigation.navigate("checklist", { cardId: newCardId });
+            }
           }
         }
+      } catch (error) {
+        console.error("Error adding to cart:", error);
+        ShowMessage("error", "Error", "Failed to add to cart");
       }
-    } catch (error) {
-      console.log(error.message);
-    }
-  };
+    },
+    [selectedColor, selectedSize, userId, productDetails, cards, navigation]
+  );
 
-  const handleWishlistToggle = async () => {
-    console.log("isInWishlist", isInWishlist);
+  const handleWishlistToggle = useCallback(async () => {
     try {
       if (!userId) {
         navigation.navigate("login");
@@ -150,13 +156,11 @@ const Details = ({ navigation }) => {
       }
 
       if (isInWishlist) {
-        // Logic to remove from wishlist
         await deleteWishlist(userId, id);
         setIsInWishlist(false);
         fetchWishlist(userId);
         ShowMessage("success", "Removed", "Removed from wishlist");
       } else {
-        // Logic to add to wishlist
         const response = await createWishlist({
           userId,
           productId: id,
@@ -169,15 +173,24 @@ const Details = ({ navigation }) => {
       }
     } catch (error) {
       console.error("Error updating wishlist:", error);
+      ShowMessage("error", "Error", "Failed to update wishlist");
     }
-  };
+  }, [userId, id, isInWishlist, fetchWishlist, navigation]);
 
-  const sizes = ["S", "M", "L", "XL"];
+  const sizes = useMemo(() => ["S", "M", "L", "XL"], []);
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={PRIMARY_COLOR} />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView>
       {productDetails && (
-        <View style={{ backgroundColor: "white" }}>
+        <View style={styles.container}>
           <Image
             source={
               productDetails?.images
@@ -195,14 +208,7 @@ const Details = ({ navigation }) => {
             onPress={() => navigation.goBack()}
           />
 
-          <View
-            style={{
-              margin: 20,
-              borderRadius: 24,
-              position: "relative",
-              backgroundColor: "white",
-            }}
-          >
+          <View style={styles.contentContainer}>
             <Text style={styles.name}>{productDetails?.name}</Text>
             <Text style={[globalStyles.price]}>
               Rs. {productDetails?.price}
@@ -211,10 +217,10 @@ const Details = ({ navigation }) => {
               name="heart"
               size={24}
               color={isInWishlist ? PRIMARY_COLOR : "black"}
-              style={{ position: "absolute", right: 0, top: 10 }}
+              style={styles.heartIcon}
               onPress={handleWishlistToggle}
             />
-            {/* Description */}
+
             <View style={styles.description}>
               <Text style={styles.descriptionTitle}>Description</Text>
               <Text style={styles.descriptionContent}>
@@ -222,15 +228,14 @@ const Details = ({ navigation }) => {
               </Text>
             </View>
 
-            {/* Size */}
-            <View style={{ marginTop: 20 }}>
+            <View style={styles.sizeContainer}>
               <Text style={styles.sizeTitle}>Size</Text>
-              <View style={{ flexDirection: "row", gap: 10, marginBottom: 20 }}>
+              <View style={styles.sizeList}>
                 {sizes.map((item, index) => (
                   <TouchableOpacity
                     style={[
                       styles.itemSize,
-                      selectedSize == item
+                      selectedSize === item
                         ? { backgroundColor: PRIMARY_COLOR }
                         : { backgroundColor: "#e8e8e8" },
                     ]}
@@ -239,8 +244,8 @@ const Details = ({ navigation }) => {
                   >
                     <Text
                       style={[
-                        { textAlign: "center", paddingTop: 10 },
-                        selectedSize == item && { color: "white" },
+                        styles.sizeText,
+                        selectedSize === item && styles.selectedSizeText,
                       ]}
                     >
                       {item}
@@ -249,54 +254,6 @@ const Details = ({ navigation }) => {
                 ))}
               </View>
             </View>
-
-            {/* Colors Available */}
-            <View>
-              <Text style={styles.colorTitle}>Colors Available:</Text>
-              <View
-                style={{ flexDirection: "row", gap: 10, marginVertical: 10 }}
-              >
-                {productDetails?.productDetails &&
-                  productDetails?.productDetails.map((item, index) => (
-                    <TouchableOpacity
-                      style={[
-                        styles.colorCircle,
-                        { backgroundColor: item.color },
-                        !availableColors.includes(item.color) &&
-                          styles.disabledColor,
-                      ]}
-                      key={index}
-                      disabled={!availableColors.includes(item.color)}
-                      onPress={() => setSelectedColor(item.color)}
-                    >
-                      {selectedColor && item.color == selectedColor && (
-                        <AntDesign
-                          name="check"
-                          size={24}
-                          color="white"
-                          style={{ paddingLeft: 8, paddingTop: 4 }}
-                        />
-                      )}
-                    </TouchableOpacity>
-                  ))}
-              </View>
-            </View>
-
-            {/* Add to card */}
-            <View style={styles.buttonBox}>
-              <TouchableOpacity
-                style={styles.button}
-                onPress={() => handleAddToCart("addtocard")}
-              >
-                <Text style={styles.buttonText}>Add To Card</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.button}
-                onPress={() => handleAddToCart("buy")}
-              >
-                <Text style={styles.buttonText}>Buy Now</Text>
-              </TouchableOpacity>
-            </View>
           </View>
         </View>
       )}
@@ -304,93 +261,88 @@ const Details = ({ navigation }) => {
   );
 };
 
+Details.propTypes = {
+  navigation: PropTypes.shape({
+    navigate: PropTypes.func.isRequired,
+    goBack: PropTypes.func.isRequired,
+  }).isRequired,
+};
+
 export default Details;
 
 const styles = StyleSheet.create({
-  container: {},
+  container: {
+    backgroundColor: "white",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   imageDetail: {
     width: "100%",
-    height: 342,
-    resizeMode: "cover",
-    marginTop: 10,
-  },
-  name: {
-    fontWeight: "bold",
-    fontSize: 21,
-    lineHeight: 28,
-    marginVertical: 10,
-  },
-  description: {
-    marginTop: 20,
-    height: 115,
-  },
-  descriptionTitle: {
-    fontWeight: 600,
-    fontSize: 17,
-    color: "#252525",
-    paddingBottom: 5,
-  },
-  descriptionContent: {
-    color: "#505050",
-    fontWeight: "normal",
-    fontSize: 15,
-    lineHeight: 23,
-  },
-  sizeTitle: {
-    color: "#505050",
-    fontWeight: "600",
-    fontSize: 15,
-    paddingTop: 5,
-    marginBottom: 10,
-  },
-  itemSize: {
-    width: 38,
-    height: 38,
-    borderRadius: 5,
-    // backgroundColor: "#faeef2",
-  },
-  colorTitle: {
-    color: "#505050",
-    fontWeight: "600",
-    fontSize: 15,
-    paddingTop: 5,
-  },
-  colorCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    // borderColor: "#e8e8e8",
-    // borderWidth: 1,
-  },
-  disabledColor: {
-    opacity: 0.3, // Làm mờ màu không có hàng
-  },
-  buttonBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 30,
-    // marginVertical: 20,
-  },
-  button: {
-    width: 134,
-    height: 62,
-    borderRadius: 10,
-    backgroundColor: PRIMARY_COLOR,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  buttonText: {
-    color: "white",
-    fontSize: 17,
-    fontWeight: "500",
-    textAlign: "center",
+    height: 400,
+    objectFit: "cover",
   },
   leftCircle: {
     position: "absolute",
-    top: 20,
-    left: 10,
-    zIndex: 1000,
+    top: 40,
+    left: 20,
+  },
+  contentContainer: {
+    margin: 20,
+    borderRadius: 24,
+    position: "relative",
+    backgroundColor: "white",
+  },
+  name: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  heartIcon: {
+    position: "absolute",
+    right: 0,
+    top: 10,
+  },
+  description: {
+    marginTop: 20,
+  },
+  descriptionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  descriptionContent: {
+    fontSize: 16,
+    color: "#666",
+    lineHeight: 24,
+  },
+  sizeContainer: {
+    marginTop: 20,
+  },
+  sizeTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  sizeList: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 20,
+  },
+  itemSize: {
     width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  sizeText: {
+    textAlign: "center",
+    paddingTop: 10,
+  },
+  selectedSizeText: {
+    color: "white",
   },
 });

@@ -102,7 +102,7 @@ const screens = [
     options: { headerShown: true, title: "Chat" },
   },
   {
-    name: "chatMessage",
+    name: "chat-message",
     component: ChatScreen,
     options: { headerShown: true, title: "Customer Support" },
   },

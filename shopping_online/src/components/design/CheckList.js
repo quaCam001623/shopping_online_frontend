@@ -1,4 +1,11 @@
-import React, { useState, useEffect, useRef, useContext } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useContext,
+  useCallback,
+  useMemo,
+} from "react";
 import {
   View,
   Text,
@@ -6,7 +13,9 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
+import PropTypes from "prop-types";
 import { useRoute } from "@react-navigation/native";
 import Feather from "@expo/vector-icons/Feather";
 import { PRIMARY_COLOR } from "../../utils/enums";
@@ -18,26 +27,30 @@ import ConfirmRemove from "../../funtions/ConfirmRemove";
 import { AuthContext } from "../../common/context/AuthContext";
 import ShowMessage from "../../funtions/Message";
 
+const MAX_QUANTITY = 20;
+const MIN_QUANTITY = 1;
+const SHIPPING_FEE = 15000;
+
 const CheckList = ({ navigation }) => {
   const route = useRoute();
-  const { cardId = null } = route.params || {}; // Safe destructuring
+  const { cardId = null } = route.params || {};
   const { userId } = useContext(AuthContext);
   const [isSelected, setSelection] = useState(cardId ? [cardId] : []);
   const [cards, setCards] = useState([]);
   const actionSheetRef = useRef(null);
   const [selectedItemToRemove, setSelectedItemToRemove] = useState(null);
   const [selectedProduct, setSelectedProdcut] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // console.log("cardId", cardId);
-
-  const confirmRemove = (item) => {
+  const confirmRemove = useCallback((item) => {
     setSelectedItemToRemove(item);
     actionSheetRef.current?.show();
-  };
+  }, []);
 
   useEffect(() => {
     const fetchCarts = async (userId) => {
       try {
+        setIsLoading(true);
         const response = await getCards(userId);
 
         if (response) {
@@ -49,12 +62,15 @@ const CheckList = ({ navigation }) => {
         }
       } catch (error) {
         console.error("Error fetching cards:", error);
+        ShowMessage("error", "Error", "Failed to fetch cart items");
+      } finally {
+        setIsLoading(false);
       }
     };
     if (userId) {
       fetchCarts(userId);
     }
-  }, [userId]);
+  }, [userId, isSelected]);
 
   useEffect(() => {
     const selectedCards = cards
@@ -66,61 +82,79 @@ const CheckList = ({ navigation }) => {
         price: card.productDetailId.productId.price,
       }));
     setSelectedProdcut(selectedCards);
-  }, [isSelected]);
+  }, [isSelected, cards]);
 
-  const handleChecbox = (item) => {
+  const handleChecbox = useCallback((item) => {
     setSelection((prev) =>
       prev.includes(item._id)
         ? prev.filter((id) => id !== item._id)
         : [...prev, item._id]
     );
-  };
+  }, []);
 
-  console.log("selection product", isSelected);
-
-  const updateC = async (cardId, data) => {
+  const updateCardQuantity = useCallback(async (cardId, data) => {
     try {
       const response = await updateCard(cardId, data);
-
-      setCards((prevCards) =>
-        prevCards.map((card) =>
-          card._id === cardId
-            ? { ...card, quantity: response?.data.quantity }
-            : card
-        )
-      );
+      if (response?.data) {
+        setCards((prevCards) =>
+          prevCards.map((card) =>
+            card._id === cardId
+              ? { ...card, quantity: response.data.quantity }
+              : card
+          )
+        );
+      }
     } catch (error) {
-      console.log(error);
+      console.error("Error updating card quantity:", error);
+      ShowMessage("error", "Error", "Failed to update quantity");
     }
-  };
+  }, []);
 
-  const handleQuantity = (cardId, quantity) => {
-    updateC(cardId, { quantity });
-  };
+  const handleQuantity = useCallback(
+    (cardId, newQuantity) => {
+      if (newQuantity < MIN_QUANTITY || newQuantity > MAX_QUANTITY) {
+        return;
+      }
+      updateCardQuantity(cardId, { quantity: newQuantity });
+    },
+    [updateCardQuantity]
+  );
 
-  const totalAmount = cards
-    .filter((item) => isSelected.includes(item._id))
-    .reduce(
-      (sum, item) => sum + item.productDetailId.productId.price * item.quantity,
-      0
-    );
+  const totalAmount = useMemo(
+    () =>
+      cards
+        .filter((item) => isSelected.includes(item._id))
+        .reduce(
+          (sum, item) =>
+            sum + item.productDetailId.productId.price * item.quantity,
+          0
+        ),
+    [cards, isSelected]
+  );
 
-  const handlePayOrder = () => {
+  const handlePayOrder = useCallback(() => {
     if (totalAmount < 1) {
       ShowMessage("error", "Error", "You have to choose at least a product");
       return;
     }
     navigation.navigate("payorder", {
-      totalAmount: totalAmount + 15000,
+      totalAmount: totalAmount + SHIPPING_FEE,
       selectedProduct,
       isSelected,
     });
-  };
+  }, [totalAmount, selectedProduct, isSelected, navigation]);
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={PRIMARY_COLOR} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      {/* <HeaderNav screen="Shopping Bag" navigation={navigation} /> */}
-      <View style={{ height: 500, flexDirection: "column-reverse" }}>
+      <View style={styles.scrollContainer}>
         <ScrollView>
           {cards &&
             cards.map((item) => (
@@ -139,54 +173,56 @@ const CheckList = ({ navigation }) => {
                       : require("../../../assets/icon.png")
                   }
                 />
-                <View style={{ width: 150, gap: 5 }}>
-                  <Text>{item?.productDetailId?.productId?.name}</Text>
-                  <Text>
+                <View style={styles.productInfo}>
+                  <Text style={styles.productName}>
+                    {item?.productDetailId?.productId?.name}
+                  </Text>
+                  <Text style={styles.productPrice}>
                     Rs.{" "}
                     {Number(
                       item?.productDetailId?.productId?.price
                     ).toLocaleString("vi-Vn")}
                   </Text>
-                  <Text>Size: {item?.productDetailId?.size}</Text>
+                  <Text style={styles.productSize}>
+                    Size: {item?.productDetailId?.size}
+                  </Text>
 
-                  {/* quantity */}
                   <View style={styles.operationContainer}>
                     <TouchableOpacity
                       style={[
                         styles.operation,
-                        item.quantity > 20 && styles.disabledButton,
+                        item.quantity >= MAX_QUANTITY && styles.disabledButton,
                       ]}
                       onPress={() =>
                         handleQuantity(item._id, item.quantity + 1)
                       }
-                      disabled={item.quantity > 20 ? true : false}
+                      disabled={item.quantity >= MAX_QUANTITY}
                     >
                       <Text style={styles.operationPlus}>+</Text>
                     </TouchableOpacity>
-                    <Text>{item?.quantity}</Text>
+                    <Text style={styles.quantityText}>{item?.quantity}</Text>
                     <TouchableOpacity
                       style={[
                         styles.operation,
-                        item.quantity > 20 && styles.disabledButton,
+                        item.quantity <= MIN_QUANTITY && styles.disabledButton,
                       ]}
                       onPress={() =>
                         handleQuantity(item._id, item.quantity - 1)
                       }
-                      disabled={item.quantity == 1 ? true : false}
+                      disabled={item.quantity <= MIN_QUANTITY}
                     >
                       <Text style={styles.operationMinus}>-</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
 
-                {/* size & delete */}
-                <View>
+                <View style={styles.actionContainer}>
                   <View
                     style={[
                       styles.sizeContainer,
                       { backgroundColor: item?.productDetailId?.color },
                     ]}
-                  ></View>
+                  />
 
                   <TouchableOpacity onPress={() => confirmRemove(item)}>
                     <Feather
@@ -198,10 +234,9 @@ const CheckList = ({ navigation }) => {
                   </TouchableOpacity>
                 </View>
 
-                {/* remove */}
                 <ConfirmRemove
                   actionSheetRef={actionSheetRef}
-                  item={selectedItemToRemove ? selectedItemToRemove : item}
+                  item={selectedItemToRemove || item}
                   setCards={setCards}
                   handleQuantity={handleQuantity}
                 />
@@ -210,33 +245,38 @@ const CheckList = ({ navigation }) => {
         </ScrollView>
       </View>
 
-      {/* total money */}
-      <View>
-        <View style={styles.line}></View>
-        <View style={styles.viewTotal}>
-          <Text style={styles.text}>Sub Total</Text>
-          <Text style={styles.number}>
+      <View style={styles.summaryContainer}>
+        <View style={styles.line} />
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>Sub Total</Text>
+          <Text style={styles.summaryValue}>
             {totalAmount ? totalAmount.toLocaleString("vi-VN") + "VNĐ" : ""}
           </Text>
         </View>
-        <View style={styles.viewTotal}>
-          <Text style={styles.text}>Shipping</Text>
-          <Text style={styles.number}>15.000 VNĐ</Text>
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>Shipping</Text>
+          <Text style={styles.summaryValue}>15.000 VNĐ</Text>
         </View>
-        <View style={styles.totalContainer}>
-          <Text style={styles.text}>Bag Total</Text>
-          <Text style={styles.total}>
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>Bag Total</Text>
+          <Text style={styles.totalValue}>
             {totalAmount
-              ? (totalAmount + 15000).toLocaleString("vi-VN") + "VNĐ"
+              ? (totalAmount + SHIPPING_FEE).toLocaleString("vi-VN") + "VNĐ"
               : ""}
           </Text>
         </View>
-        <TouchableOpacity onPress={() => handlePayOrder()}>
+        <TouchableOpacity onPress={handlePayOrder}>
           <ButtonText text="Proceed to Checkout" />
         </TouchableOpacity>
       </View>
     </View>
   );
+};
+
+CheckList.propTypes = {
+  navigation: PropTypes.shape({
+    navigate: PropTypes.func.isRequired,
+  }).isRequired,
 };
 
 export default CheckList;
@@ -246,97 +286,122 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     backgroundColor: "white",
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  scrollContainer: {
+    height: 500,
+    flexDirection: "column-reverse",
+  },
   card: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginVertical: 15,
-    backgroundColor: "white",
-  },
-  image: {
-    width: 77,
-    height: 85,
-    borderRadius: 15,
-    marginRight: 10,
-  },
-  viewTotal: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginVertical: 10,
-  },
-  text: {
-    fontSize: 14,
-    color: "#000",
-  },
-  number: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#000",
-  },
-  totalContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    // marginTop: 20,
-    marginBottom: 20,
-  },
-  total: {
-    fontSize: 30,
-    fontWeight: "bold",
-    color: PRIMARY_COLOR,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e8e8e8",
   },
   checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 3,
-    backgroundColor: PRIMARY_COLOR,
+    marginRight: 10,
+  },
+  image: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    marginRight: 15,
+  },
+  productInfo: {
+    width: 150,
+    gap: 5,
+  },
+  productName: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  productPrice: {
+    fontSize: 14,
+    color: PRIMARY_COLOR,
+  },
+  productSize: {
+    fontSize: 14,
+    color: "#666",
   },
   operationContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 15,
+    gap: 10,
   },
   operation: {
-    width: 31,
+    width: 30,
     height: 30,
-    borderRadius: 16,
-    backgroundColor: "#e8e8e8",
-    position: "relative",
+    borderRadius: 15,
+    backgroundColor: "#f5f5f5",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  disabledButton: {
+    opacity: 0.5,
   },
   operationPlus: {
-    fontSize: 14,
-    position: "absolute",
-    top: 5,
-    right: 11,
+    fontSize: 18,
+    color: PRIMARY_COLOR,
   },
   operationMinus: {
-    fontSize: 15,
-    position: "absolute",
-    top: 3,
-    right: 13,
+    fontSize: 18,
+    color: PRIMARY_COLOR,
+  },
+  quantityText: {
+    fontSize: 16,
+    minWidth: 30,
+    textAlign: "center",
+  },
+  actionContainer: {
+    marginLeft: "auto",
   },
   sizeContainer: {
-    width: 31,
-    height: 30,
-    borderRadius: 16,
-    backgroundColor: "#24232B",
-    position: "relative",
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    marginBottom: 10,
   },
-  size: {
-    color: "white",
-    fontSize: 14,
-    position: "absolute",
-    top: 5,
-    right: 11,
+  trashIcon: {
+    marginTop: 5,
   },
-  trashIcon: { paddingVertical: 10, marginLeft: 4 },
-  line: {
-    borderTopWidth: 1,
-    borderTopColor: "#ccc",
-    width: 321,
-    alignSelf: "center",
+  summaryContainer: {
     paddingVertical: 20,
   },
-  disabledButton: { opacity: 0.2 }, // Custom style khi disabled
+  line: {
+    height: 1,
+    backgroundColor: "#e8e8e8",
+    marginBottom: 15,
+  },
+  summaryRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  summaryLabel: {
+    fontSize: 16,
+    color: "#666",
+  },
+  summaryValue: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  totalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  totalLabel: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  totalValue: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: PRIMARY_COLOR,
+  },
 });

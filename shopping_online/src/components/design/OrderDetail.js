@@ -84,20 +84,21 @@ const OrderDetailsScreen = () => {
             setLoading(true);
             // Gọi API hủy đơn hàng
             const response = await deleteOrder(orderId);
-            console.log("response, delete", response);
 
             if (response) {
+              // Cập nhật trạng thái đơn hàng sau khi hủy
+              setOrder((prevOrder) => ({ ...prevOrder, status: "Cancelled" }));
+
               // Hiển thị thông báo thành công
               ShowMessage("success", "Success", "Order cancelled successfully");
 
-              // Đợi một chút để người dùng thấy thông báo
+              // Cập nhật lại danh sách đơn hàng
               setTimeout(async () => {
-                const response = await getOrderByUser(userId);
-                setOrders(response);
+                const updatedOrders = await getOrderByUser(userId);
+                setOrders(updatedOrders);
                 setLoading(false);
               }, 500);
             } else {
-              // Hiển thị thông báo lỗi nếu API trả về lỗi
               ShowMessage(
                 "error",
                 "Error",
@@ -118,7 +119,6 @@ const OrderDetailsScreen = () => {
       },
     ]);
   };
-
   // Xử lý đặt lại đơn hàng
   const handleReorder = () => {
     // Chuyển thông tin sản phẩm vào giỏ hàng
@@ -134,7 +134,11 @@ const OrderDetailsScreen = () => {
           text: "Yes",
           onPress: () => {
             // Thêm logic thêm vào giỏ hàng ở đây
-            navigation.navigate("checklist");
+            navigation.navigate("payorder", {
+              totalAmount: order?.totalAmount,
+              selectedProduct: orderDetail,
+              isSelected: orderDetail.map((item) => item._id),
+            });
           },
         },
       ]);

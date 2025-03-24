@@ -1,5 +1,13 @@
-import React, { useEffect, useState } from "react";
-import { Image, Text, View, ScrollView, TouchableOpacity } from "react-native";
+import React, { useEffect, useState, useMemo } from "react";
+import {
+  Image,
+  Text,
+  View,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+} from "react-native";
+import PropTypes from "prop-types";
 import Header from "../common/Header";
 import { SearchBar } from "react-native-elements";
 import { StyleSheet } from "react-native";
@@ -10,38 +18,44 @@ import { getProducts } from "../../services/productService";
 const HomeScreen = ({ navigation }) => {
   const [products, setProducts] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterProducts, setFilterProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
+        setIsLoading(true);
         const response = await getProducts();
         if (response) {
-          setProducts(response); // Lưu dữ liệu vào state
-          setFilterProducts(response);
+          setProducts(response);
         }
       } catch (error) {
         console.error("Error fetching products:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchProducts();
   }, []);
-  // console.log("products", products);
+
+  const filteredProducts = useMemo(() => {
+    if (!searchQuery.trim()) return products;
+    return products.filter((item) =>
+      item.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [products, searchQuery]);
 
   const handleSearch = (query) => {
     setSearchQuery(query);
-    if (query.trim() === "") {
-      setFilterProducts(products);
-    } else {
-      const filtered = products.filter((item) =>
-        item.name.toLowerCase().includes(query.toLowerCase())
-      );
-      setFilterProducts(filtered);
-    }
   };
 
-  // console.log(" products", products);
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#DB3022" />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView>
@@ -57,50 +71,34 @@ const HomeScreen = ({ navigation }) => {
           onChangeText={handleSearch}
         />
 
-        <View style={{ height: 500 }}>
-          <ScrollView
-            contentContainerStyle={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: 20,
-            }}
-          >
-            {products != null ? (
-              filterProducts?.map((item) => (
-                <TouchableOpacity
-                  style={styles.item}
-                  key={item._id}
-                  onPress={() =>
-                    navigation.navigate(`details`, { id: item._id })
+        <View style={styles.productsContainer}>
+          <ScrollView contentContainerStyle={styles.scrollContent}>
+            {filteredProducts?.map((item) => (
+              <TouchableOpacity
+                style={styles.item}
+                key={item._id}
+                onPress={() => navigation.navigate("details", { id: item._id })}
+              >
+                <Image
+                  style={styles.image}
+                  source={
+                    item.images.length > 0
+                      ? { uri: item.images[0] }
+                      : require("../../../assets/coat.png")
                   }
-                >
-                  <Image
-                    style={styles.image}
-                    source={
-                      item.images.length > 0
-                        ? { uri: item.images[0] }
-                        : require("../../../assets/coat.png")
-                    }
-                  />
+                />
 
-                  <Text style={styles.name}>{item.name}</Text>
-                  <Text style={styles.price}> Rs. {item.price}</Text>
-                  {/* <View style={styles.heart}></View>
-                  <Entypo
-                    name="heart-outlined"
-                    size={24}
-                    color="black"
-                    style={{ position: "absolute", top: 35, right: 34 }}
-                  /> */}
-                </TouchableOpacity>
-              ))
-            ) : (
-              <View>
-                <Text>Loading.....</Text>
-              </View>
-            )}
+                <Text style={styles.name}>{item.name}</Text>
+                <Text style={styles.price}> Rs. {item.price}</Text>
+                {/* <View style={styles.heart}></View>
+                <Entypo
+                  name="heart-outlined"
+                  size={24}
+                  color="black"
+                  style={{ position: "absolute", top: 35, right: 34 }}
+                /> */}
+              </TouchableOpacity>
+            ))}
           </ScrollView>
         </View>
         {/* <Bottom /> */}
@@ -109,10 +107,21 @@ const HomeScreen = ({ navigation }) => {
   );
 };
 
+HomeScreen.propTypes = {
+  navigation: PropTypes.shape({
+    navigate: PropTypes.func.isRequired,
+  }).isRequired,
+};
+
 export default HomeScreen;
 
 const styles = StyleSheet.create({
   container: {},
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   text: {
     fontWeight: "bold",
     fontSize: 24,
@@ -121,7 +130,6 @@ const styles = StyleSheet.create({
     marginVertical: 25,
     marginHorizontal: 30,
   },
-
   search: {
     width: 321,
     height: 50,
@@ -135,6 +143,16 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     borderBottomColor: "transparent",
     borderColor: "transparent",
+  },
+  productsContainer: {
+    height: 500,
+  },
+  scrollContent: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 20,
   },
   image: {
     width: 151,
