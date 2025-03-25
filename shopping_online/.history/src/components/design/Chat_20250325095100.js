@@ -107,7 +107,6 @@ const Chat = () => {
   // Send message to Realtime Database
   const sendMessage = async () => {
     if (message.trim()) {
-      console.log("Sending message:", message);
       try {
         setSending(true);
         const newMessageRef = push(ref(db, "messages"));
@@ -119,9 +118,7 @@ const Chat = () => {
           timestamp: Date.now(),
           read: false,
         };
-        console.log("New message object:", newMessage);
         await set(newMessageRef, newMessage);
-        console.log("Message sent successfully");
         setMessage("");
       } catch (err) {
         console.error("Error sending message:", err);
@@ -129,8 +126,6 @@ const Chat = () => {
       } finally {
         setSending(false);
       }
-    } else {
-      console.log("Message is empty, not sending");
     }
   };
 

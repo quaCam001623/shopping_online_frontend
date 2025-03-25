@@ -35,17 +35,14 @@ const ChatScreen = () => {
 
   useEffect(() => {
     // Fetch data from the correct path in Realtime Database
-    const messagesRef = ref(database, "chats/");
+    const messagesRef = ref(database, "user-chats/");
     onValue(messagesRef, (snapshot) => {
       const data = snapshot.val();
       console.log("Data from Firebase:", data); // Log data from Firebase
       if (data) {
         const loadedMessages = Object.entries(data).map(([key, value]) => ({
           id: key,
-          text: value.message,
-          email: value.email,
-          username: value.username,
-          admin: value["admin-replies"],
+          text: value.text,
         }));
         console.log("Loaded Messages:", loadedMessages); // Log loaded messages
         setMessages(loadedMessages);
@@ -74,9 +71,7 @@ const ChatScreen = () => {
         data={messages}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View>
-            <Text style={styles.message}>{item.text}</Text>
-          </View>
+          <Text style={styles.message}>{item.text}</Text>
         )}
       />
 

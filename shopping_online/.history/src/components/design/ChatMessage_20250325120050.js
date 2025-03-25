@@ -74,9 +74,7 @@ const ChatScreen = () => {
         data={messages}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View>
-            <Text style={styles.message}>{item.text}</Text>
-          </View>
+          <Text style={styles.message}>{item.text}</Text>
         )}
       />
 

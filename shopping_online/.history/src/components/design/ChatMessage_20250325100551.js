@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { database } from "../../config/firebase";
 import { ref, push, onValue } from "firebase/database";
-import { set } from "firebase/database";
+import { getDatabase, ref, set } from "firebase/database";
 import { AuthContext } from "../../common/context/AuthContext";
 
 const ChatScreen = () => {
@@ -18,34 +18,24 @@ const ChatScreen = () => {
   const { userId, user } = useContext(AuthContext);
 
   function writeUserData(userId, user, message) {
-    if (!userId || !user) {
-      console.error("User ID or user data is missing");
-      return;
-    }
-    console.log("Writing user data:", userId, user, message);
-    const chatId = `id-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-    set(ref(database, "chats/" + chatId), {
+    database;
+    set(ref(db, "users/" + userId), {
       username: `${user.firstName} ${user.lastName}`,
       email: user.email,
       message: message,
-    }).catch((error) => {
-      console.error("Error writing to Firebase:", error);
     });
   }
 
   useEffect(() => {
-    // Fetch data from the correct path in Realtime Database
-    const messagesRef = ref(database, "chats/");
+    // Lấy dữ liệu từ Realtime Database
+    const messagesRef = ref(db, "messages");
     onValue(messagesRef, (snapshot) => {
       const data = snapshot.val();
       console.log("Data from Firebase:", data); // Log data from Firebase
       if (data) {
         const loadedMessages = Object.entries(data).map(([key, value]) => ({
           id: key,
-          text: value.message,
-          email: value.email,
-          username: value.username,
-          admin: value["admin-replies"],
+          text: value.text,
         }));
         console.log("Loaded Messages:", loadedMessages); // Log loaded messages
         setMessages(loadedMessages);
@@ -54,17 +44,12 @@ const ChatScreen = () => {
   }, []);
 
   const sendMessage = () => {
-    if (message.trim() === "") return;
     writeUserData(userId, user, message);
-    // // Save message to the correct path in Realtime Database
-    // const messagesRef = ref(database, "messages/");
-    // push(messagesRef, { text: message })
-    //   .then(() => {
-    //     console.log("Message sent successfully");
-    //   })
-    //   .catch((error) => {
-    //     console.error("Error sending message to Firebase:", error);
-    //   });
+    if (message.trim() === "") return;
+
+    // Lưu tin nhắn vào Realtime Database
+    const messagesRef = ref(database, "messages");
+    push(messagesRef, { text: message });
     setMessage("");
   };
 
@@ -74,9 +59,7 @@ const ChatScreen = () => {
         data={messages}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View>
-            <Text style={styles.message}>{item.text}</Text>
-          </View>
+          <Text style={styles.message}>{item.text}</Text>
         )}
       />
 

@@ -1,0 +1,84 @@
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  TextInput,
+  Button,
+  FlatList,
+  Text,
+  StyleSheet,
+} from "react-native";
+import { db } from "../../config/firebase";
+import { ref, push, onValue } from "firebase/database";
+
+const ChatScreen = () => {
+  const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState([]);
+
+  useEffect(() => {
+    // Lấy dữ liệu từ Realtime Database
+    const messagesRef = ref(db, "messages");
+    onValue(messagesRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const loadedMessages = Object.entries(data).map(([key, value]) => ({
+          id: key,
+          text: value.text,
+        }));
+        setMessages(loadedMessages);
+      }
+    });
+  }, []);
+
+  const sendMessage = () => {
+    if (message.trim() === "") return;
+
+    // Lưu tin nhắn vào Realtime Database
+    const messagesRef = ref(db, "messages");
+    push(messagesRef, { text: message });
+    setMessage("");
+  };
+
+  return (
+    <View style={styles.container}>
+      <FlatList
+        data={messages}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <Text style={styles.message}>{item.text}</Text>
+        )}
+      />
+
+      <TextInput
+        value={message}
+        onChangeText={(text) => setMessage(text)}
+        placeholder="Nhập tin nhắn..."
+        style={styles.input}
+      />
+
+      <Button title="Gửi" onPress={sendMessage} />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    justifyContent: "center",
+  },
+  message: {
+    padding: 10,
+    backgroundColor: "#f4f4f4",
+    marginBottom: 5,
+    borderRadius: 5,
+  },
+  input: {
+    borderWidth: 1,
+    padding: 10,
+    marginBottom: 10,
+    borderRadius: 10,
+    borderColor: "#ccc",
+  },
+});
+
+export default ChatScreen;

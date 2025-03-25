@@ -45,7 +45,6 @@ const ChatScreen = () => {
           text: value.message,
           email: value.email,
           username: value.username,
-          admin: value["admin-replies"],
         }));
         console.log("Loaded Messages:", loadedMessages); // Log loaded messages
         setMessages(loadedMessages);
@@ -74,9 +73,7 @@ const ChatScreen = () => {
         data={messages}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View>
-            <Text style={styles.message}>{item.text}</Text>
-          </View>
+          <Text style={styles.message}>{item.text}</Text>
         )}
       />
 

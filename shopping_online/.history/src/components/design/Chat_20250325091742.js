@@ -30,21 +30,39 @@ import {
 import { SERVER_URL } from "../../services/baseService";
 import { AuthContext } from "../../common/context/AuthContext";
 import { PRIMARY_COLOR } from "../../utils/enums";
-import { db } from "../../config/firebase";
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  onSnapshot,
-  query,
-  orderBy,
-  getDocs,
-  serverTimestamp,
-} from "firebase/firestore";
-import { ref, onValue, push, set } from "firebase/database";
+import firebase from "firebase/app";
+import "firebase/firestore";
 
-// Define the storage key
-const MESSAGES_STORAGE_KEY = "user_chat_messages";
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_STORAGE_BUCKET",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID",
+};
+
+// Initialize Firebase
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+
+const db = firebase.firestore();
+
+// Lấy thông tin người dùng hiện tại từ AsyncStorage
+const getCurrentUser = async () => {
+  try {
+    const userJson = await AsyncStorage.getItem("user");
+    if (userJson) {
+      return JSON.parse(userJson);
+    }
+    return null;
+  } catch (error) {
+    console.error("Lỗi khi lấy thông tin người dùng:", error);
+    return null;
+  }
+};
 
 const Chat = () => {
   const [message, setMessage] = useState("");
@@ -61,67 +79,65 @@ const Chat = () => {
   console.log("userId", userId);
   // console.log("user", user);
 
-  // Fetch messages from Realtime Database
-  const fetchMessages = useCallback(() => {
-    const messagesRef = ref(db, "messages");
-    onValue(
-      messagesRef,
-      (snapshot) => {
-        const data = snapshot.val();
-        const formattedMessages = data
-          ? Object.keys(data).map((key) => ({
-              ...data[key],
-              _id: key,
-            }))
-          : [];
-        setMessages(formattedMessages);
-        saveMessagesToStorage(formattedMessages);
-      },
-      (error) => {
-        console.error("Error fetching messages from Realtime Database:", error);
-        setError(
-          `Cannot load messages: ${error?.message || "Connection error"}`
-        );
-      }
-    );
+  // Fetch messages from Firestore
+  const fetchMessages = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const snapshot = await db
+        .collection("messages")
+        .orderBy("timestamp")
+        .get();
+      const formattedMessages = snapshot.docs.map((doc) => ({
+        ...doc.data(),
+        _id: doc.id,
+      }));
+
+      setMessages(formattedMessages);
+      await saveMessagesToStorage(formattedMessages);
+    } catch (err) {
+      console.error("Error fetching messages from Firestore:", err);
+      setError(`Cannot load messages: ${err?.message || "Connection error"}`);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
 
-  // Listen for new messages in Realtime Database
+  // Listen for new messages in Firestore
   useEffect(() => {
-    const messagesRef = ref(db, "messages");
-    const unsubscribe = onValue(messagesRef, (snapshot) => {
-      const data = snapshot.val();
-      const formattedMessages = data
-        ? Object.keys(data).map((key) => ({
-            ...data[key],
-            _id: key,
-          }))
-        : [];
-      setMessages(formattedMessages);
-      saveMessagesToStorage(formattedMessages);
-    });
+    const unsubscribe = db
+      .collection("messages")
+      .orderBy("timestamp")
+      .onSnapshot((snapshot) => {
+        const formattedMessages = snapshot.docs.map((doc) => ({
+          ...doc.data(),
+          _id: doc.id,
+        }));
+
+        setMessages(formattedMessages);
+        saveMessagesToStorage(formattedMessages);
+      });
 
     return () => unsubscribe();
   }, []);
 
-  // Send message to Realtime Database
+  // Send message to Firestore
   const sendMessage = async () => {
     if (message.trim()) {
-      console.log("Sending message:", message);
       try {
         setSending(true);
-        const newMessageRef = push(ref(db, "messages"));
         const newMessage = {
           text: message,
           username: `${user.firstName} ${user.lastName}`,
           userId: user._id,
           sender: "user",
-          timestamp: Date.now(),
+          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
           read: false,
         };
-        console.log("New message object:", newMessage);
-        await set(newMessageRef, newMessage);
-        console.log("Message sent successfully");
+
+        await db.collection("messages").add(newMessage);
         setMessage("");
       } catch (err) {
         console.error("Error sending message:", err);
@@ -129,8 +145,6 @@ const Chat = () => {
       } finally {
         setSending(false);
       }
-    } else {
-      console.log("Message is empty, not sending");
     }
   };
 
